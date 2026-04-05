@@ -26,7 +26,6 @@
             display: none;
         }
 
-        /* Oculto hasta que se pulse el botón */
         #ui-layer {
             text-align: center;
             z-index: 10;
@@ -50,6 +49,7 @@
         #status {
             margin-top: 20px;
             color: #aaa;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -58,6 +58,7 @@
     <div id="ui-layer">
         <h1>CivCraft Legacy</h1>
         <button id="start-button">¡JUGAR AHORA!</button>
+        <div id="status"></div>
     </div>
 
     <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="1"></canvas>
@@ -70,24 +71,31 @@
             cdn: "https://pygame-web.github.io/cdn/0.9.3/",
             autorun: 1,
             ume_block: 0,
-            user_canvas_resizer: 1
+            user_canvas_resizer: 1,
+            code: "main.py"
         };
     </script>
 
     <script id="start-logic">
+        const statusDiv = document.getElementById('status');
+        
+        function updateStatus(msg) {
+            console.log(msg);
+            statusDiv.textContent = msg;
+        }
+
         document.getElementById('start-button').onclick = () => {
             document.getElementById('ui-layer').style.display = 'none';
             document.getElementById('canvas').style.display = 'block';
-
+            
+            updateStatus("Cargando Pygame..." );
             const script = document.createElement('script');
             script.type = 'module';
             script.src = "https://pygame-web.github.io/cdn/0.9.3/pythons.js";
             script.dataset.python = "python3.12";
             script.dataset.os = "vtx,snd,gui";
-            // IMPORTANTE: No le pongas id="site" al script dinámico
             document.body.appendChild(script);
         };
     </script>
 </body>
-
 </html>
