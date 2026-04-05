@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CivCraft Legacy</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script src="https://pygame-web.github.io/cdn/0.9.3/pythons.js" type="module" id="site" data-python="python3.12"
+        data-os="vtx,snd,gui" async defer></script>
+    <style>
+        body {
+            background-color: #7f7f7f;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #status {
+            color: white;
+            font-family: sans-serif;
+            position: absolute;
+            z-index: 10;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="status">Cargando CivCraft Legacy...</div>
+    <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="1"></canvas>
+
+    <script type="application/javascript">
+        // Configuración interna para el archivo .tar que tienes
+        config = {
+            archive: "migranciudad",
+            fb_width: "1280",
+            fb_height: "720",
+            cdn: "https://pygame-web.github.io/cdn/0.9.3/"
+        }
+    </script>
+</body>
+
+</html>

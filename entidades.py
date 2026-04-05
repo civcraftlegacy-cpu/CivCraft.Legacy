@@ -9,10 +9,11 @@ class Ciudadano:
         self.nombre = f"{random.choice(NOMBRES_BASE)} {random.choice(APELLIDOS_BASE)}"
         self.profesion = random.choice(PROFESIONES_BASE)
         self.edad = random.randint(18, 50)
-        self.salud = 100
+        self.salud = 80
         self.felicidad = 80
         self.esta_vivo = True
         self.tiene_casa = False
+        self.tiene_empleo = False
 
         self.rango_etario = "Adulto"
 
@@ -29,7 +30,7 @@ class Ciudadano:
         noticias_del_turno = []
         self.definir_rango()
 
-        # 🔧 NOTA: Consumo de comida y agua se hace GLOBALMENTE en logica_ciudad.avanzar_año()
+        # 🔧 NOTA: Consumo de comida y agua se hace GLOBALMENTE en logica_ciudad.avanzar_ano()
         # No repetir aquí para evitar DOBLE CONSUMO
         
         # Solo checkeamos si hay SUFICIENTES recursos (la resta ya se hizo globalmente)

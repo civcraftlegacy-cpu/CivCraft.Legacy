@@ -25,6 +25,7 @@ class MenuPartidas:
         self.botones_eliminar = []
         self.partida_a_eliminar = None
         self.confirmando_eliminar = False
+        self.error_max_partidas = ""
         
     def cargar_partidas_usuario(self):
         """Carga todas las partidas del usuario desde archivo JSON"""
@@ -46,13 +47,16 @@ class MenuPartidas:
                     for i, datos in enumerate(datos_lista):
                         poblacion = len(datos.get("poblacion", []))
                         if poblacion > 0:  # Solo mostrar si tienen habitantes
-                            partidas.append({
+                            año_partida = datos.get("año", 0)
+                        capitulo = (año_partida // 100) + 1
+                        partidas.append({
                                 "nombre": datos.get("nombre", f"Partida Sin Nombre {i}"),
                                 "datos": datos,
                                 "index": i,
                                 "poblacion": poblacion,
                                 "dinero": datos.get("dinero", 0),
-                                "año": datos.get("año", 0)
+                                "año": año_partida,
+                                "capitulo": capitulo
                             })
             except Exception as e:
                 print(f"Error cargando partidas: {e}")
@@ -145,7 +149,7 @@ class MenuPartidas:
                 
                 # Datos de la partida
                 txt_datos = self.fuente_peq.render(
-                    f"Dinero: ${int(partida.get('dinero', 0)):,} | Año: {partida.get('año', 0)} | Población: {partida.get('poblacion', 0)}",
+                    f"Dinero: ${int(partida.get('dinero', 0)):,} | Ano: {partida.get('ano', 0)} | Poblacion: {partida.get('poblacion', 0)} | Capitulo: {partida.get('capitulo', 1)}",
                     True, BLANCO
                 )
                 self.pantalla.blit(txt_datos, (rect_partida.x + 20, rect_partida.y + 40))
@@ -180,11 +184,14 @@ class MenuPartidas:
             self.btn_jugar = pygame.Rect(ANCHO - 250, btn_y, 200, 60)
             pygame.draw.rect(self.pantalla, (0, 150, 0), self.btn_jugar, border_radius=12)
             pygame.draw.rect(self.pantalla, ORO, self.btn_jugar, 2, border_radius=12)
-            txt_jugar = self.fuente_m.render("JUGAR ÚLTIMA", True, BLANCO)
+            txt_jugar = self.fuente_m.render("JUGAR PRIMERA", True, BLANCO)
             self.pantalla.blit(txt_jugar, (self.btn_jugar.centerx - txt_jugar.get_width() // 2, self.btn_jugar.centery - txt_jugar.get_height() // 2))
         
+        if self.error_max_partidas:
+            self._dibujar_error_max_partidas()
+
         pygame.display.flip()
-    
+
     def _dibujar_confirmacion_eliminar(self):
         """Dibuja diálogo de confirmación de eliminación"""
         s = pygame.Surface((ANCHO, ALTO), pygame.SRCALPHA)
@@ -217,6 +224,27 @@ class MenuPartidas:
         txt_no = self.fuente_p.render("NO", True, BLANCO)
         self.pantalla.blit(txt_no, (self.btn_confirm_no.centerx - txt_no.get_width()//2, self.btn_confirm_no.centery - txt_no.get_height()//2))
     
+    def _dibujar_error_max_partidas(self):
+        overlay = pygame.Surface((ANCHO, ALTO), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))
+        self.pantalla.blit(overlay, (0, 0))
+
+        cuadro = pygame.Rect(ANCHO//2 - 250, ALTO//2 - 90, 500, 180)
+        pygame.draw.rect(self.pantalla, (40, 40, 40), cuadro, border_radius=15)
+        pygame.draw.rect(self.pantalla, ROJO, cuadro, 3, border_radius=15)
+
+        txt_tit = self.fuente_m.render("Límite de partidas alcanzado", True, ORO)
+        self.pantalla.blit(txt_tit, (cuadro.centerx - txt_tit.get_width()//2, cuadro.y + 25))
+
+        txt_msg = self.fuente_p.render(self.error_max_partidas, True, BLANCO)
+        self.pantalla.blit(txt_msg, (cuadro.centerx - txt_msg.get_width()//2, cuadro.y + 75))
+
+        self.btn_error_ok = pygame.Rect(cuadro.centerx - 70, cuadro.y + 110, 140, 40)
+        pygame.draw.rect(self.pantalla, (0, 120, 180), self.btn_error_ok, border_radius=10)
+        pygame.draw.rect(self.pantalla, ORO, self.btn_error_ok, 2, border_radius=10)
+        txt_ok = self.fuente_p.render("ENTENDIDO", True, BLANCO)
+        self.pantalla.blit(txt_ok, (self.btn_error_ok.centerx - txt_ok.get_width()//2, self.btn_error_ok.centery - txt_ok.get_height()//2))
+
     def manejar_eventos(self):
         for ev in pygame.event.get():
             if ev.type == pygame.QUIT:
@@ -237,11 +265,18 @@ class MenuPartidas:
                         self.confirmando_eliminar = False
                         self.partida_a_eliminar = None
                         return
+                elif self.error_max_partidas:
+                    if hasattr(self, 'btn_error_ok') and self.btn_error_ok.collidepoint(pos):
+                        self.error_max_partidas = ""
+                        return
                 else:
                     # Botón crear nueva partida (solo si hay menos de 5)
-                    if len(self.partidas) < 5 and self.btn_nueva.collidepoint(pos):
-                        self.seleccion = "nueva"
-                        self.hecho = True
+                    if self.btn_nueva.collidepoint(pos):
+                        if len(self.partidas) < 5:
+                            self.seleccion = "nueva"
+                            self.hecho = True
+                        else:
+                            self.error_max_partidas = "Ya tienes 5 partidas. Borra una antes de crear otra."
                         return
                     
                     # Botón volver
@@ -250,7 +285,7 @@ class MenuPartidas:
                         self.hecho = True
                         return
                     
-                    # Botón jugar última partida
+                    # Botón jugar primera partida
                     if len(self.partidas) > 0 and hasattr(self, 'btn_jugar') and self.btn_jugar.collidepoint(pos):
                         self.seleccion = self.partidas[0]["datos"]  # Retornar el diccionario de datos
                         self.hecho = True

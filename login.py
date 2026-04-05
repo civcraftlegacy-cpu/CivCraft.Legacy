@@ -29,7 +29,7 @@ class LoginScreen:
     def dibujar(self):
         self.pantalla.fill((25, 25, 25))
 
-        # --- 1. CUADRO MUCHO MÁS PEQUEÑO Y AJUSTADO ---
+        # --- 1. CUADRO MUCHO MAS PEQUENO Y AJUSTADO ---
         cuadro_ancho = 500
         # Bajamos a 310 en registro y 260 en login para que no sobre nada de aire
         cuadro_alto = 310 if self.seccion == "registro" else 260 
@@ -70,7 +70,7 @@ class LoginScreen:
 
         # --- BOTÓN REGISTRAR/ENTRAR (Justo debajo) ---
         y_btn = cuadro.y + 200 if self.seccion == "registro" else cuadro.y + 160
-        self.btn_entrar = pygame.Rect(cuadro.centerx - 90, y_btn, 180, 40) # Botón un poco más fino (40px)
+        self.btn_entrar = pygame.Rect(cuadro.centerx - 90, y_btn, 180, 40) # Boton un poco mas fino (40px)
         
         color_btn = VERDE if len(self.usuario) > 0 and len(self.password) >= 4 else (80, 80, 80)
         pygame.draw.rect(self.pantalla, color_btn, self.btn_entrar, border_radius=10)

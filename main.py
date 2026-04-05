@@ -1,9 +1,11 @@
-# Copyright (c) 2026 [Cayetano Tielas Fernández]. Todos los derechos reservados.
+# -*- coding: utf-8 -*-
+# Copyright (c) 2026 [Cayetano Tielas Fernandez]. Todos los derechos reservados.
 
 import pygame
 import sys
 import random
 import os
+import asyncio
 import json
 from configuracion import *
 from logica_ciudad import LogicaCiudad
@@ -17,6 +19,12 @@ class Juego:
         pygame.init()
         self.pantalla = pygame.display.set_mode((ANCHO, ALTO))
         pygame.display.set_caption(NOMBRE_JUEGO)
+        
+        # Esto evita que salga el menú del navegador al pulsar click derecho
+        if os.getenv('WASM'):  # Solo se ejecuta si está en la web
+            from platform import window
+            window.document.oncontextmenu = lambda e: False
+        
         self.reloj = pygame.time.Clock()
         
         # --- VARIABLES DE RESOLUCIÓN ---
@@ -26,7 +34,7 @@ class Juego:
         self.ancho_anterior = ANCHO
         self.alto_anterior = ALTO
         
-        # --- CÁLCULO DE TAMAÑO DE TILE DINÁMICO ---
+        # --- CALCULO DE TAMANO DE TILE DINAMICO ---
         self.filas_mapa = FILAS
         self.columnas_mapa = COLUMNAS
         self.tamano_tile = self.calcular_tamano_tile()
@@ -75,6 +83,9 @@ class Juego:
         self.rect_slider_efectos = pygame.Rect(0, 0, 0, 0)
         self.cargar_sonidos()
 
+        # Reproducir música después del login/menú para evitar autoplay en web
+        pygame.mixer.music.play(-1)
+
 
         # --- CARGA DE ICONOS ---
         self.iconos = {}
@@ -114,9 +125,43 @@ class Juego:
         self.img_investigar_btn = pygame.image.load(os.path.join(BASE_DIR, "assets", "imagenes", "investigacion.png")).convert_alpha()
         self.img_investigar_btn = pygame.transform.scale(self.img_investigar_btn, (35, 35))
 
+        ruta_mision_icon = os.path.join(BASE_DIR, "assets", "imagenes", "mision.png")
+        if os.path.exists(ruta_mision_icon):
+            self.img_mision_btn = pygame.image.load(ruta_mision_icon).convert_alpha()
+            self.img_mision_btn = pygame.transform.scale(self.img_mision_btn, (35, 35))
+        else:
+            temp = pygame.Surface((35, 35), pygame.SRCALPHA)
+            pygame.draw.circle(temp, (255, 215, 0), (17, 17), 16)
+            self.img_mision_btn = temp
+
+        ruta_cofre1 = os.path.join(BASE_DIR, "assets", "imagenes", "cofre1.png")
+        ruta_cofre2 = os.path.join(BASE_DIR, "assets", "imagenes", "cofre2.png")
+        ruta_cofre3 = os.path.join(BASE_DIR, "assets", "imagenes", "cofre3.png")
+
+        if os.path.exists(ruta_cofre1):
+            self.img_cofre1 = pygame.image.load(ruta_cofre1).convert_alpha()
+            self.img_cofre1 = pygame.transform.scale(self.img_cofre1, (35, 35))
+        else:
+            self.img_cofre1 = pygame.Surface((35, 35), pygame.SRCALPHA)
+            pygame.draw.rect(self.img_cofre1, (170, 170, 170), (0, 0, 35, 35), border_radius=8)
+
+        if os.path.exists(ruta_cofre2):
+            self.img_cofre2 = pygame.image.load(ruta_cofre2).convert_alpha()
+            self.img_cofre2 = pygame.transform.scale(self.img_cofre2, (35, 35))
+        else:
+            self.img_cofre2 = pygame.Surface((35, 35), pygame.SRCALPHA)
+            pygame.draw.rect(self.img_cofre2, (170, 170, 170), (0, 0, 35, 35), border_radius=8)
+
+        if os.path.exists(ruta_cofre3):
+            self.img_cofre3 = pygame.image.load(ruta_cofre3).convert_alpha()
+            self.img_cofre3 = pygame.transform.scale(self.img_cofre3, (35, 35))
+        else:
+            self.img_cofre3 = pygame.Surface((35, 35), pygame.SRCALPHA)
+            pygame.draw.rect(self.img_cofre3, (170, 170, 170), (0, 0, 35, 35), border_radius=8)
+
         # --- VARIABLES DE ESTADO Y LÓGICA ---
         # Extraer nombre de partida si existe
-        nombre_partida = self.partida_actual.get("nombre", f"Año 0") if isinstance(self.partida_actual, dict) else f"Año 0"
+        nombre_partida = self.partida_actual.get("nombre", f"Ano 0") if isinstance(self.partida_actual, dict) else f"Ano 0"
         self.logica = LogicaCiudad(self, nombre_partida)
         self.logica.cargar_partida(self.partida_actual)
         
@@ -131,29 +176,26 @@ class Juego:
                 self.edificios_construidos[edificio.nombre] += 1
         
         self.mostrando_investigacion = False  # Controla si el menú está abierto
-        self.investigacion_seleccionada = None # Almacena el ID (ej: "comida_2") para el popup
-        
+        self.investigacion_seleccionada = None  # Almacena el ID (ej: "comida_2") para el popup
+
         self.investigando_id = None            # El ID de la tecnología que se está procesando
         self.tiempo_investigacion = 0           # El contador de frames (el reloj)
         self.tiempo_total_necesario = 300       # 300 frames (aprox 5-10 seg)
-        
-        # Variable para controlar qué popup está abierto
-        self.investigacion_seleccionada = None
 
-        self.investigacion_seleccionada = None # Variable para saber qué ventana abrir
-
+        self.mostrando_inventario = False
+        self.campo_nombre_activo = False
+        self.nombre_partida_actual = None
+        self.input_nombre_partida = ""
         self.corriendo = True
         self.sin_habitantes_mostrado = False
         self.volver_al_menu = False
-        self.nombre_partida_actual = None
-        self.input_nombre_partida = ""
-        self.campo_nombre_activo = False
         self.menu_compra_abierto = False
         self.noticias_abiertas = False
         self.mostrando_aviso_inv = False
-        self.mostrando_inventario = False
         self.dialogo_guardar_abierto = False
+        self.error_guardar_partida = ""
         self.menu_ajustes_abierto = False
+        self.mostrando_misiones = False
         self.mostrando_ayuda = False
         self.mostrando_ranking = False
         self.dialogo_dinero_insuficiente = False
@@ -173,19 +215,15 @@ class Juego:
         self.scroll_inv_y = 0 
         self.cantidad_a_comprar = 1 
         self.confirmacion_pendiente = None
-        self.mostrando_investigacion = False 
-        self.investigando_id = None
-        self.tiempo_investigacion = 0
-        self.investigacion_seleccionada = None
         self.investigaciones_completadas = set()
         self.mostrando_detalle_estado = False
         self.detalle_estado_tipo = None
         self.rect_detalle_popup = None
         self.rect_detalle_cerrar = None
         self.rect_hud_info = {}
-        # No usar atributos con nombre de método; el control está en self.logica
-        self.popup_evento_cerrar = False
-        
+        self.mostrando_confirmacion_reiniciar = False
+        self.boton_next_habilitado = True
+
         # --- TRACKING DE CLASIFICACIÓN ---
         self.rango_anterior = None
         self.mostrando_cambio_rango = False
@@ -216,8 +254,8 @@ class Juego:
         self.pantalla.blit(overlay, (0, 0))
         
         # Cuadro con animación
-        tamaño = 150 + int(50 * (1 - self.tiempo_cambio_rango / 240.0))
-        cuadro = pygame.Rect(ANCHO // 2 - tamaño // 2, ALTO // 2 - tamaño // 2, tamaño, tamaño)
+        tamano = 150 + int(50 * (1 - self.tiempo_cambio_rango / 240.0))
+        cuadro = pygame.Rect(ANCHO // 2 - tamano // 2, ALTO // 2 - tamano // 2, tamano, tamano)
         
         pygame.draw.rect(self.pantalla, (255, 215, 0), cuadro, border_radius=20)
         pygame.draw.rect(self.pantalla, (255, 255, 0), cuadro, 4, border_radius=20)
@@ -304,27 +342,40 @@ class Juego:
         def promedio(valor):
             return round(valor / n_pob, 1) if n_pob else 0.0
 
+        # Calcular balances proyectados para penalizaciones
+        prod_comida = sum(e.comida for e in edificios if e.comida > 0)
+        cons_comida = sum(abs(e.comida) for e in edificios if e.comida < 0) + (n_pob * CONSUMO_COMIDA_HAB)
+        bal_comida = prod_comida - cons_comida
+
+        prod_agua = sum(e.agua for e in edificios if e.agua > 0)
+        cons_agua = sum(abs(e.agua) for e in edificios if e.agua < 0) + (n_pob * CONSUMO_AGUA_HAB)
+        bal_agua = prod_agua - cons_agua
+
+        prod_elec = sum(e.elec for e in edificios if e.elec > 0)
+        cons_elec = sum(abs(e.elec) for e in edificios if e.elec < 0) + (n_pob * CONSUMO_ELEC_HAB)
+        bal_elec = prod_elec - cons_elec
+
+        dinero_por_persona = INGRESO_BASE_HAB * (IMPUESTO_INICIAL / 100)
+        impuestos_totales = n_pob * dinero_por_persona
+        ingresos_edif = sum(getattr(e, 'produccion_dinero', 0) for e in edificios)
+        mantenimiento_total = sum(getattr(e, 'mantenimiento', 0) for e in edificios)
+        bal_dinero = (impuestos_totales + ingresos_edif) - mantenimiento_total
+
         if tipo == "felicidad":
-            positivos = sum(len(e.habitantes) * max(0, getattr(e, 'felic_impacto', 0)) for e in edificios)
-            negativos = sum(len(e.habitantes) * min(0, getattr(e, 'felic_impacto', 0)) for e in edificios)
-
-            avg_positivos = promedio(positivos)
-            avg_negativos = promedio(negativos)
-
-            if avg_positivos:
-                detalles.append(("Edificios: felicidad positiva", avg_positivos))
-                total += avg_positivos
-            if avg_negativos:
-                detalles.append(("Edificios: felicidad negativa", avg_negativos))
-                total += avg_negativos
+            edificios_no_casa = [ed for ed in EDIFICACIONES if ed[0] != "Casa"]
+            impacto_edificios_felic = sum(ed[6] * self.edificios_construidos.get(ed[0], 0) for ed in edificios_no_casa)
+            cuenta_edificios = max(1, sum(self.edificios_construidos.get(ed[0], 0) for ed in edificios_no_casa))
+            avg_impacto_edificios_felic = round(impacto_edificios_felic / cuenta_edificios, 1)
+            detalles.append(("Edificaciones", avg_impacto_edificios_felic))
+            total += avg_impacto_edificios_felic
 
             if self.logica.dinero < 0:
                 deuda_penal = -10.0
-                detalles.append(("Deuda: -10% de felicidad promedio", deuda_penal))
+                detalles.append(("Deuda", deuda_penal))
                 total += deuda_penal
             elif self.logica.dinero > 50000 and self.logica.recursos.get('comida', 0) > 4000:
                 bonificacion = 2.0
-                detalles.append(("Ciudad próspera: +2% de felicidad promedio", bonificacion))
+                detalles.append(("Ciudad próspera", bonificacion))
                 total += bonificacion
 
             if sin_casa:
@@ -337,30 +388,38 @@ class Juego:
                 detalles.append((f"Sin electricidad útil: {sin_luz} ciudadanos", penal))
                 total += penal
 
+            # Detallar penalizaciones por balances anuales negativos
+            if bal_comida < 0:
+                detalles.append(("Balance anual de comida", -2.0))
+                total += -2.0
+            if bal_agua < 0:
+                detalles.append(("Balance anual de agua", -2.0))
+                total += -2.0
+            if bal_elec < 0:
+                detalles.append(("Balance anual de energía", -2.0))
+                total += -2.0
+            if bal_dinero < 0:
+                detalles.append(("Balance anual de dinero", -2.0))
+                total += -2.0
+
             if not detalles:
                 detalles.append(("Sin cambios directos de felicidad", 0.0))
 
         else:
-            positivos = sum(len(e.habitantes) * max(0, getattr(e, 'salud_impacto', 0)) for e in edificios)
-            negativos = sum(len(e.habitantes) * min(0, getattr(e, 'salud_impacto', 0)) for e in edificios)
-
-            avg_positivos = promedio(positivos)
-            avg_negativos = promedio(negativos)
-
-            if avg_positivos:
-                detalles.append(("Edificios: salud positiva", avg_positivos))
-                total += avg_positivos
-            if avg_negativos:
-                detalles.append(("Edificios: salud negativa", avg_negativos))
-                total += avg_negativos
+            edificios_no_casa = [ed for ed in EDIFICACIONES if ed[0] != "Casa"]
+            impacto_edificios_salud = sum(ed[7] * self.edificios_construidos.get(ed[0], 0) for ed in edificios_no_casa)
+            cuenta_edificios = max(1, sum(self.edificios_construidos.get(ed[0], 0) for ed in edificios_no_casa))
+            avg_impacto_edificios_salud = round(impacto_edificios_salud / cuenta_edificios, 1)
+            detalles.append(("Edificaciones", avg_impacto_edificios_salud))
+            total += avg_impacto_edificios_salud
 
             if self.logica.recursos.get('comida', 0) < 0:
                 hambre_penal = -float(DANO_HAMBRE)
-                detalles.append(("Hambre: -salud promedio", hambre_penal))
+                detalles.append(("Hambre", hambre_penal))
                 total += hambre_penal
             if self.logica.recursos.get('agua', 0) < 0:
                 sed_penal = -float(DANO_SED)
-                detalles.append(("Sed: -salud promedio", sed_penal))
+                detalles.append(("Sed", sed_penal))
                 total += sed_penal
 
             if sin_luz:
@@ -372,6 +431,25 @@ class Juego:
                 penal = promedio(-1 * sin_casa)
                 detalles.append((f"Sin vivienda: {sin_casa} ciudadanos", penal))
                 total += penal
+
+            # Detallar penalizaciones por balances anuales negativos
+            if bal_comida < 0:
+                detalles.append(("Balance anual de comida", -1.0))
+                total += -1.0
+            if bal_agua < 0:
+                detalles.append(("Balance anual de agua", -1.0))
+                total += -1.0
+            if bal_elec < 0:
+                detalles.append(("Balance anual de energía", -1.0))
+                total += -1.0
+            if bal_dinero < 0:
+                detalles.append(("Balance anual de dinero", -1.0))
+                total += -1.0
+
+            promedio_felicidad = promedio(sum(h.felicidad for h in poblacion))
+            if promedio_felicidad < 20 and n_pob > 0:
+                detalles.append(("Ciudad infeliz", -3.0))
+                total += -3.0
 
             if not detalles:
                 detalles.append(("Sin cambios directos de salud", 0.0))
@@ -428,7 +506,7 @@ class Juego:
                 with open(self.ruta_partida, "r", encoding="utf-8") as f:
                     partidas = json.load(f)
                 
-                # Filtrar partidas con población > 0
+                # Filtrar partidas con poblacion > 0
                 partidas_validas = [p for p in partidas if len(p.get("poblacion", [])) > 0]
                 
                 if len(partidas_validas) < len(partidas):
@@ -457,18 +535,18 @@ class Juego:
                 break
 
     def calcular_tamano_tile(self):
-        """Calcula el tamaño de los tiles basado en el tamaño actual de la pantalla"""
+        """Calcula el tamano de los tiles basado en el tamano actual de la pantalla"""
         # Espacio disponible para el mapa
         ancho_disponible = self.ancho
         alto_disponible = self.alto - MARGEN_HUD_SUP - MARGEN_HUD_INF
         
-        # Calcular tamaño máximo que cabe en el ancho
+        # Calcular tamano maximo que cabe en el ancho
         tamano_por_ancho = ancho_disponible / self.columnas_mapa
         
-        # Calcular tamaño máximo que cabe en el alto
+        # Calcular tamano maximo que cabe en el alto
         tamano_por_alto = alto_disponible / self.filas_mapa
         
-        # Usar el más pequeño para que todo quepa
+        # Usar el mas pequeno para que todo quepa
         tamano = int(min(tamano_por_ancho, tamano_por_alto))
         
         # Asegurar que sea al menos 1 píxel
@@ -502,8 +580,8 @@ class Juego:
             break
 
     def actualizar_posiciones_ui(self):
-        """Recalcula las posiciones de todos los elementos UI basado en el tamaño actual"""
-        # Recalcular tamaño del tile
+        """Recalcula las posiciones de todos los elementos UI basado en el tamano actual"""
+        # Recalcular tamano del tile
         self.tamano_tile = self.calcular_tamano_tile()
         
         # Botones principales
@@ -540,7 +618,7 @@ class Juego:
         fel = sum(h.felicidad for h in pob)//n_pob if n_pob else 100
         sal = sum(h.salud for h in pob)//n_pob if n_pob else 100
         
-        # --- CÁLCULO DE PROYECCIÓN PARA EL SIGUIENTE AÑO ---
+        # --- CALCULO DE PROYECCION PARA EL SIGUIENTE ANO ---
         # Esto calcula cuánto va a cambiar el recurso al final del turno
         
         # 1. Energía: Suma lo que producen menos lo que consumen los edificios + habitantes
@@ -580,9 +658,9 @@ class Juego:
             ("comida", f"{comida_viz}", (0, 255, 100), bal_comida),
             ("agua", f"{agua_viz}", CIAN, bal_agua),
             ("energia", f"{energia_viz}", AMARILLO, bal_elec),
-            ("felicidad", f"{fel}%", VIOLETA, None),
-            ("salud", f"{sal}%", ROJO, None),
-            ("reloj", f"Año: {self.logica.año}", BLANCO, None)
+            ("felicidad", f"{int(fel)}%", VIOLETA, None),
+            ("salud", f"{int(sal)}%", ROJO, None),
+            ("reloj", f"Ano: {self.logica.ano}", BLANCO, None)
         ]
 
         caps = {
@@ -594,7 +672,7 @@ class Juego:
 
 
         pygame.draw.rect(self.pantalla, NARANJA, self.btn_next, border_radius=15)
-        txt_next = self.fuente_m.render("SIGUIENTE AÑO", True, BLANCO)
+        txt_next = self.fuente_m.render("SIGUIENTE ANO", True, BLANCO)
         self.pantalla.blit(txt_next, (self.btn_next.centerx - txt_next.get_width()//2, self.btn_next.centery - txt_next.get_height()//2))
 
         for i, (icon, val, col, balance) in enumerate(stats):
@@ -635,9 +713,10 @@ class Juego:
             if balance is not None:
                 self.dibujar_sub_stats(x, balance)
 
-        # --- BOTÓN SIGUIENTE AÑO ---
-        pygame.draw.rect(self.pantalla, NARANJA, self.btn_next, border_radius=15)
-        txt_next = self.fuente_m.render("SIGUIENTE AÑO", True, BLANCO)
+        # --- BOTÓN SIGUIENTE ANO ---
+        color_next = NARANJA if self.boton_next_habilitado else (100, 100, 100)
+        pygame.draw.rect(self.pantalla, color_next, self.btn_next, border_radius=15)
+        txt_next = self.fuente_m.render("SIGUIENTE ANO", True, BLANCO)
         self.pantalla.blit(txt_next, (self.btn_next.centerx - txt_next.get_width()//2, self.btn_next.centery - txt_next.get_height()//2))
 
         # --- BOTÓN TIENDA ---
@@ -837,7 +916,7 @@ class Juego:
         cuadro = pygame.Rect(self.ancho - 360, 80, 330, 320)
         pygame.draw.rect(self.pantalla, (20, 20, 20), cuadro, border_radius=12)
         pygame.draw.rect(self.pantalla, GRIS_CLARO, cuadro, 2, border_radius=12)
-        self.pantalla.blit(self.fuente_m.render("NOTICIAS DEL AÑO", True, CIAN), (cuadro.x + 20, cuadro.y + 10))
+        self.pantalla.blit(self.fuente_m.render("NOTICIAS DEL ANO", True, CIAN), (cuadro.x + 20, cuadro.y + 10))
 
         # Mostrar como máximo 8 noticias recientes
         for i, n in enumerate(self.logica.noticias[-8:]):
@@ -857,7 +936,7 @@ class Juego:
         pygame.draw.rect(self.pantalla, (40, 40, 40), cuadro, border_radius=20)
         pygame.draw.rect(self.pantalla, ORO, cuadro, 3, border_radius=20)
 
-        # 3. TÍTULO (Más grande y con más aire)
+        # 3. TITULO (Mas grande y con mas aire)
         nombre_edf = self.confirmacion_pendiente[0]
         txt_tit = self.fuente_g.render(f"¿Comprar {nombre_edf}?", True, BLANCO)
         self.pantalla.blit(txt_tit, (cuadro.centerx - txt_tit.get_width()//2, cuadro.y + 20))
@@ -881,12 +960,12 @@ class Juego:
         for i, (icon_key, texto, color) in enumerate(info_recursos):
             y_pos = rect_recursos.y + 15 + (i * 28) # Espaciado aumentado
             if icon_key in self.iconos:
-                ico = pygame.transform.scale(self.iconos[icon_key], (22, 22)) # Iconos más grandes
+                ico = pygame.transform.scale(self.iconos[icon_key], (22, 22)) # Iconos mas grandes
                 self.pantalla.blit(ico, (rect_recursos.x + 15, y_pos))
             txt_r = self.fuente_m.render(texto, True, color) 
             self.pantalla.blit(txt_r, (rect_recursos.x + 45, y_pos))
 
-        # 6. BOTONES SÍ / NO (Más grandes y a la derecha)
+        # 6. BOTONES SI / NO (Mas grandes y a la derecha)
         # Ajustamos el tamaño de los Rects de colisión
         self.btn_si.width, self.btn_si.height = 140, 60
         self.btn_no.width, self.btn_no.height = 140, 60
@@ -904,7 +983,7 @@ class Juego:
 
         # 7. MULTIPLICADORES (Aumentados y centrados abajo)
         for cant, rect in self.btn_multiplicadores.items():
-            rect.width, rect.height = 60, 40 # Más grandes
+            rect.width, rect.height = 60, 40 # Mas grandes
             rect.y = rect_recursos.bottom + 15
             
             idx = [1, 2, 3, 5, 10].index(cant)
@@ -923,7 +1002,7 @@ class Juego:
         s.fill((0, 0, 0, 180))
         self.pantalla.blit(s, (0, 0))
 
-        # 2. Panel (Más estrecho para que no sobre espacio, como en la foto 2)
+        # 2. Panel (Mas estrecho para que no sobre espacio, como en la foto 2)
         ancho_panel = 800 
         cuadro = pygame.Rect((self.ancho - ancho_panel) // 2, 80, ancho_panel, self.alto - 200)
         pygame.draw.rect(self.pantalla, (30, 30, 30), cuadro, border_radius=20)
@@ -1327,13 +1406,17 @@ class Juego:
         pygame.draw.rect(self.pantalla, AMARILLO if self.campo_nombre_activo else (100, 100, 100), self.rect_input_nombre, 2, border_radius=8)
         
         # Texto en el campo
-        txt_input = self.fuente_p.render(self.input_nombre_partida if self.input_nombre_partida else f"Año {self.logica.año}", True, BLANCO)
+        txt_input = self.fuente_p.render(self.input_nombre_partida if self.input_nombre_partida else f"Ano {self.logica.ano}", True, BLANCO)
         self.pantalla.blit(txt_input, (self.rect_input_nombre.x + 10, self.rect_input_nombre.centery - txt_input.get_height()//2))
 
         # Cursor parpadeante
         if self.campo_nombre_activo and (pygame.time.get_ticks() // 500) % 2:
             cursor_x = self.rect_input_nombre.x + 10 + txt_input.get_width()
             pygame.draw.line(self.pantalla, AMARILLO, (cursor_x, self.rect_input_nombre.y + 5), (cursor_x, self.rect_input_nombre.y + 35), 2)
+
+        if self.error_guardar_partida:
+            txt_error = self.fuente_p.render(self.error_guardar_partida, True, ROJO)
+            self.pantalla.blit(txt_error, (cuadro.x + 30, cuadro.y + 160))
 
         # 5. BOTONES SÍ / NO
         self.btn_guardar_si = pygame.Rect(cuadro.centerx - 150, cuadro.y + 200, 120, 50)
@@ -1366,8 +1449,19 @@ class Juego:
         lbl_inv_lab = self.fuente_p.render("Investigar", True, CIAN)
         self.pantalla.blit(lbl_inv_lab, (self.btn_investigar.centerx - lbl_inv_lab.get_width()//2, self.btn_investigar.bottom + 5))
 
-        # Botón Ajustes (Movido a ANCHO - 230)
-        self.btn_ajustes = pygame.Rect(ANCHO - 230, ALTO - 80, 60, 60)
+        # Botón Misiones (ANCHO - 230)
+        self.btn_misiones = pygame.Rect(ANCHO - 230, ALTO - 80, 60, 60)
+        pygame.draw.circle(self.pantalla, (50, 50, 70), self.btn_misiones.center, 30)
+        pygame.draw.circle(self.pantalla, ORO, self.btn_misiones.center, 30, 2)
+        if hasattr(self, 'img_mision_btn'):
+            pos_x = self.btn_misiones.centerx - self.img_mision_btn.get_width() // 2
+            pos_y = self.btn_misiones.centery - self.img_mision_btn.get_height() // 2
+            self.pantalla.blit(self.img_mision_btn, (pos_x, pos_y))
+        lbl_mis = self.fuente_p.render("Misiones", True, ORO)
+        self.pantalla.blit(lbl_mis, (self.btn_misiones.centerx - lbl_mis.get_width()//2, self.btn_misiones.bottom + 5))
+
+        # Botón Ajustes (ANCHO - 270)
+        self.btn_ajustes = pygame.Rect(ANCHO - 270, ALTO - 80, 60, 60)
         pygame.draw.circle(self.pantalla, (50, 50, 50), self.btn_ajustes.center, 30)
         pygame.draw.circle(self.pantalla, ORO, self.btn_ajustes.center, 30, 2)
         self.pantalla.blit(self.img_ajustes, (self.btn_ajustes.centerx - 17, self.btn_ajustes.centery - 17))
@@ -1394,9 +1488,9 @@ class Juego:
         """Dibuja el menú de ajustes flotante"""
         # Panel principal semi-transparente
         panel_ancho = 300
-        panel_alto = 430
+        panel_alto = 560
         panel_x = ANCHO - panel_ancho - 15
-        panel_y = ALTO - panel_alto - 110
+        panel_y = ALTO - panel_alto - 90
         
         # Fondo del panel
         pygame.draw.rect(self.pantalla, (40, 40, 40), (panel_x, panel_y, panel_ancho, panel_alto), border_radius=8)
@@ -1412,6 +1506,7 @@ class Juego:
             {"txt": "Mis Partidas", "id": "partidas"},
             {"txt": "Cómo Jugar", "id": "ayuda"},
             {"txt": "Clasificación", "id": "ranking"},
+            {"txt": "Reiniciar Capitulo", "id": "reiniciar"},
             {"txt": "Volver al Menú", "id": "menu"},
         ]
         
@@ -1419,11 +1514,11 @@ class Juego:
         y_offset = panel_y + 50
         
         for i, opcion in enumerate(opciones):
-            btn_rect = pygame.Rect(panel_x + 10, y_offset + (i * 48), panel_ancho - 20, 40)
+            btn_rect = pygame.Rect(panel_x + 10, y_offset + (i * 52), panel_ancho - 20, 44)
             self.botones_ajustes.append((btn_rect, opcion["id"]))
             
             # Color del botón
-            color_btn = (70, 100, 150) if opcion["id"] not in ["menu"] else (150, 50, 50)
+            color_btn = (70, 100, 150) if opcion["id"] not in ["menu", "reiniciar"] else (150, 50, 50)
             pygame.draw.rect(self.pantalla, color_btn, btn_rect, border_radius=5)
             pygame.draw.rect(self.pantalla, ORO, btn_rect, 1, border_radius=5)
             
@@ -1433,8 +1528,8 @@ class Juego:
 
         # Slider música
         texto_musica = self.fuente_p.render("Volumen Música", True, BLANCO)
-        self.pantalla.blit(texto_musica, (panel_x + 15, panel_y + 295))
-        self.rect_slider_musica = pygame.Rect(panel_x + 15, panel_y + 320, panel_ancho - 30, 12)
+        self.pantalla.blit(texto_musica, (panel_x + 15, panel_y + 390))
+        self.rect_slider_musica = pygame.Rect(panel_x + 15, panel_y + 415, panel_ancho - 30, 12)
         pygame.draw.rect(self.pantalla, (80, 80, 80), self.rect_slider_musica, border_radius=6)
         pygame.draw.rect(self.pantalla, ORO, self.rect_slider_musica, 2, border_radius=6)
         handle_x = self.rect_slider_musica.x + int(self.volumen_musica * (self.rect_slider_musica.width - 12))
@@ -1443,13 +1538,111 @@ class Juego:
 
         # Slider efectos
         texto_efectos = self.fuente_p.render("Volumen Efectos", True, BLANCO)
-        self.pantalla.blit(texto_efectos, (panel_x + 15, panel_y + 350))
-        self.rect_slider_efectos = pygame.Rect(panel_x + 15, panel_y + 375, panel_ancho - 30, 12)
+        self.pantalla.blit(texto_efectos, (panel_x + 15, panel_y + 440))
+        self.rect_slider_efectos = pygame.Rect(panel_x + 15, panel_y + 465, panel_ancho - 30, 12)
         pygame.draw.rect(self.pantalla, (80, 80, 80), self.rect_slider_efectos, border_radius=6)
         pygame.draw.rect(self.pantalla, ORO, self.rect_slider_efectos, 2, border_radius=6)
         handle_x = self.rect_slider_efectos.x + int(self.volumen_efectos * (self.rect_slider_efectos.width - 12))
         handle = pygame.Rect(handle_x, self.rect_slider_efectos.y - 4, 16, 20)
         pygame.draw.rect(self.pantalla, (200, 200, 200), handle, border_radius=4)
+
+    def dibujar_misiones_popup(self):
+        ancho_panel = 520
+        alto_panel = 420
+        panel_x = self.ancho // 2 - ancho_panel // 2
+        panel_y = self.alto // 2 - alto_panel // 2
+
+        overlay = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))
+        self.pantalla.blit(overlay, (0, 0))
+
+        pygame.draw.rect(self.pantalla, (30, 30, 40), (panel_x, panel_y, ancho_panel, alto_panel), border_radius=12)
+        pygame.draw.rect(self.pantalla, ORO, (panel_x, panel_y, ancho_panel, alto_panel), 3, border_radius=12)
+
+        titulo = self.fuente_g.render("MISIÓNES", True, ORO)
+        self.pantalla.blit(titulo, (panel_x + ancho_panel // 2 - titulo.get_width() // 2, panel_y + 18))
+
+        progreso = min(100, int((len(self.logica.misiones_completadas) / max(len(self.logica.misiones_capitulo), 1)) * 100))
+        barra = pygame.Rect(panel_x + 30, panel_y + 80, ancho_panel - 60, 14)
+        pygame.draw.rect(self.pantalla, (70, 70, 90), barra, border_radius=7)
+        pygame.draw.rect(self.pantalla, (150, 190, 255), (barra.x, barra.y, int(barra.width * progreso / 100), barra.height), border_radius=7)
+
+        niveles = [(20, self.img_cofre1), (50, self.img_cofre2), (100, self.img_cofre3)]
+        for porcentaje, imagen in niveles:
+            x_icono = barra.x + int(barra.width * porcentaje / 100) - imagen.get_width() // 2
+            y_icono = barra.y + barra.height + 15
+            self.pantalla.blit(imagen, (x_icono, y_icono))
+            texto = self.fuente_p.render(f"{porcentaje}%", True, BLANCO)
+            self.pantalla.blit(texto, (x_icono + imagen.get_width() // 2 - texto.get_width() // 2, y_icono + imagen.get_height() + 4))
+
+        descripcion = self.fuente_p.render("Progreso del capitulo", True, BLANCO)
+        self.pantalla.blit(descripcion, (panel_x + 30, panel_y + 110))
+
+        misiones_x = panel_x + 30
+        misiones_y = panel_y + 150
+        casilla_ancho = 150
+        casilla_alto = 60
+
+        for idx in range(9):
+            fila = idx // 3
+            col = idx % 3
+            rect = pygame.Rect(misiones_x + col * (casilla_ancho + 10), misiones_y + fila * (casilla_alto + 10), casilla_ancho, casilla_alto)
+            pygame.draw.rect(self.pantalla, (40, 40, 55), rect, border_radius=8)
+            pygame.draw.rect(self.pantalla, (100, 100, 140), rect, 2, border_radius=8)
+            texto_mision = self.fuente_p.render(f"Misión fácil {idx + 1}", True, BLANCO)
+            self.pantalla.blit(texto_mision, (rect.x + 10, rect.y + rect.height // 2 - texto_mision.get_height() // 2))
+
+        rect_especial = pygame.Rect(panel_x + 30, misiones_y + 3 * (casilla_alto + 10) + 10, ancho_panel - 60, casilla_alto)
+        pygame.draw.rect(self.pantalla, (45, 45, 70), rect_especial, border_radius=10)
+        pygame.draw.rect(self.pantalla, (200, 180, 100), rect_especial, 2, border_radius=10)
+        texto_especial = self.fuente_p.render("Mision especial del capitulo", True, BLANCO)
+        self.pantalla.blit(texto_especial, (rect_especial.x + 10, rect_especial.y + rect_especial.height // 2 - texto_especial.get_height() // 2))
+
+        progreso_texto = self.fuente_p.render(f"{progreso}% completado", True, ORO)
+        self.pantalla.blit(progreso_texto, (panel_x + ancho_panel - progreso_texto.get_width() - 30, panel_y + 110))
+
+    def dibujar_confirmacion_reiniciar(self):
+        """Dibuja el popup de confirmación para reiniciar capítulo"""
+        # Fondo oscuro
+        s = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+        s.fill((0, 0, 0, 180))
+        self.pantalla.blit(s, (0, 0))
+
+        # Cuadro principal
+        cuadro = pygame.Rect(self.ancho//2 - 300, self.alto//2 - 150, 600, 300)
+        pygame.draw.rect(self.pantalla, (25, 25, 25), cuadro, border_radius=15)
+        pygame.draw.rect(self.pantalla, ORO, cuadro, 4, border_radius=15)
+
+        # Título
+        titulo = self.fuente_g.render("¿REINICIAR CAPITULO?", True, ROJO)
+        self.pantalla.blit(titulo, (cuadro.centerx - titulo.get_width()//2, cuadro.y + 20))
+
+        # Explicación
+        lineas = [
+            "Reiniciar el capítulo restablecerá el juego al estado inicial",
+            "del capítulo actual. Perderás todo el progreso desde el inicio",
+            "del capitulo, incluyendo edificios, recursos, poblacion y avances.",
+            "",
+            "¿Estás seguro de que quieres reiniciar?"
+        ]
+        y = cuadro.y + 70
+        for linea in lineas:
+            txt = self.fuente_p.render(linea, True, BLANCO)
+            self.pantalla.blit(txt, (cuadro.centerx - txt.get_width()//2, y))
+            y += 25
+
+        # Botones
+        self.btn_confirmar_reiniciar = pygame.Rect(cuadro.centerx - 160, cuadro.y + 220, 140, 50)
+        pygame.draw.rect(self.pantalla, (0, 150, 0), self.btn_confirmar_reiniciar, border_radius=10)
+        pygame.draw.rect(self.pantalla, ORO, self.btn_confirmar_reiniciar, 2, border_radius=10)
+        txt_si = self.fuente_m.render("SÍ, REINICIAR", True, BLANCO)
+        self.pantalla.blit(txt_si, (self.btn_confirmar_reiniciar.centerx - txt_si.get_width()//2, self.btn_confirmar_reiniciar.centery - txt_si.get_height()//2))
+
+        self.btn_cancelar_reiniciar = pygame.Rect(cuadro.centerx + 20, cuadro.y + 220, 140, 50)
+        pygame.draw.rect(self.pantalla, (150, 50, 50), self.btn_cancelar_reiniciar, border_radius=10)
+        pygame.draw.rect(self.pantalla, ORO, self.btn_cancelar_reiniciar, 2, border_radius=10)
+        txt_no = self.fuente_m.render("CANCELAR", True, BLANCO)
+        self.pantalla.blit(txt_no, (self.btn_cancelar_reiniciar.centerx - txt_no.get_width()//2, self.btn_cancelar_reiniciar.centery - txt_no.get_height()//2))
 
     def cargar_sonidos(self):
         ruta_sonidos = os.path.join(BASE_DIR, "assets", "sonidos")
@@ -1480,7 +1673,8 @@ class Juego:
             try:
                 pygame.mixer.music.load(ruta_musica)
                 pygame.mixer.music.set_volume(self.volumen_musica)
-                pygame.mixer.music.play(-1)
+                # No reproducir aquí para evitar autoplay en web
+                # pygame.mixer.music.play(-1)
             except Exception as e:
                 print(f"Aviso: no se pudo cargar música de fondo -> {e}")
         else:
@@ -1556,9 +1750,9 @@ class Juego:
             "",
             "POBLACIÓN: Aumenta el número de ciudadanos construyendo viviendas y servicios.",
             "",
-            "OFICINA DE TURISMO: Atrae más población a tu ciudad de forma más rápida.",
+            "OFICINA DE TURISMO: Atrae mas poblacion a tu ciudad de forma mas rapida.",
             "",
-            "FELICIDAD: La población necesita servicios cercanos. Mayor felicidad = más recursos.",
+            "FELICIDAD: La poblacion necesita servicios cercanos. Mayor felicidad = mas recursos.",
             "",
             "TIENDA: Compra edificios nuevos. Cada edificio ocupa 3x3 celdas en tu mapa.",
             "",
@@ -1646,10 +1840,10 @@ class Juego:
         self.pantalla.blit(txt_no, (self.btn_inv_no.centerx - txt_no.get_width()//2, self.btn_inv_no.centery - txt_no.get_height()//2))
 
     def cargar_ranking_global(self):
-        """Carga todas las partidas guardadas y las ordena por dinero."""
-        # ✓ ARREGLO 2: Quitar filtro por año - mostrar ranking global
+        """Carga todas las partidas guardadas del mismo capítulo y las ordena por dinero."""
         partidas_ranking = []
         carpeta_usuarios = os.path.join(BASE_DIR, "usuarios")
+        capitulo_actual = (self.logica.ano // 100) + 1 if hasattr(self, 'logica') else 1
         
         if os.path.exists(carpeta_usuarios):
             for archivo in os.listdir(carpeta_usuarios):
@@ -1658,16 +1852,28 @@ class Juego:
                     try:
                         with open(ruta_completa, 'r', encoding='utf-8') as f:
                             datos = json.load(f)
-                            año_partida = datos.get("año", 1)
-                            
-                            nombre_usuario = archivo.replace("partida_", "").replace(".json", "")
+
+                        partidas_guardadas = datos if isinstance(datos, list) else [datos]
+                        nombre_usuario = archivo.replace("partidas_", "").replace(".json", "")
+
+                        for partida in partidas_guardadas:
+                            ano_partida = partida.get("ano", 0)
+                            capitulo_partida = (ano_partida // 100) + 1
+                            if capitulo_partida != capitulo_actual:
+                                continue
+
+                            poblacion_partida = len(partida.get("poblacion", []))
+                            recursos = partida.get("recursos", {})
                             partidas_ranking.append({
                                 "usuario": nombre_usuario,
-                                "dinero": datos.get("dinero", 0),
-                                "año": año_partida,
-                                "poblacion": len(datos.get("poblacion", [])),
-                                "felicidad": sum(p.get("felicidad", 0) for p in datos.get("poblacion", [])) // max(len(datos.get("poblacion", [])), 1),
-                                "recursos": datos.get("recursos", {}),
+                                "dinero": partida.get("dinero", 0),
+                                "ano": ano_partida,
+                                "poblacion": poblacion_partida,
+                                "felicidad": sum(p.get("felicidad", 0) for p in partida.get("poblacion", [])) // max(poblacion_partida, 1),
+                                "salud": sum(p.get("salud", 0) for p in partida.get("poblacion", [])) // max(poblacion_partida, 1),
+                                "recursos": f"C:{recursos.get('comida', 0)} A:{recursos.get('agua', 0)} E:{recursos.get('electricidad', 0)}",
+                                "nivel_tecnologico": partida.get("nivel_tecnologico", 1),
+                                "capitulo": capitulo_partida,
                             })
                     except:
                         pass
@@ -1683,11 +1889,12 @@ class Juego:
         pygame.draw.rect(self.pantalla, (20, 20, 20), panel_rect, border_radius=8)
         pygame.draw.rect(self.pantalla, ORO, panel_rect, 3, border_radius=8)
         
-        # ✓ ARREGLO 2: Mostrar ranking global (sin filtro de año)
-        titulo = self.fuente_g.render("CLASIFICACIÓN GLOBAL - TOP 100", True, ORO)
+        # ✓ ARREGLO 2: Mostrar ranking global (sin filtro de ano)
+        capitulo_actual = (self.logica.ano // 100) + 1 if hasattr(self, 'logica') else 1
+        titulo = self.fuente_g.render(f"CLASIFICACION CAPITULO {capitulo_actual}", True, ORO)
         self.pantalla.blit(titulo, (ANCHO//2 - titulo.get_width()//2, 100))
         
-        # Cargar ranking global sin filtro
+        # Cargar ranking del mismo capítulo
         ranking = self.cargar_ranking_global()
         
         if not ranking:
@@ -1696,8 +1903,8 @@ class Juego:
         else:
             # Encabezados
             y_start = 150
-            encabezados = ["Pos.", "Usuario", "Dinero", "Años", "Población", "Felicidad"]
-            x_positions = [60, 120, 280, 380, 470, 580]
+            encabezados = ["Posicion", "Usuario", "Dinero", "Anos", "Poblacion", "Felicidad", "Salud", "Investigacion"]
+            x_positions = [60, 170, 380, 540, 640, 780, 880, 980]
             
             for i, encab in enumerate(encabezados):
                 txt = self.fuente_p.render(encab, True, ORO)
@@ -1717,7 +1924,9 @@ class Juego:
                     f"${partida['dinero']:,}",
                     str(partida["año"]),
                     str(partida["poblacion"]),
-                    f"{partida['felicidad']:.0f}%"
+                    f"{partida['felicidad']:.0f}%",
+                    f"{partida['salud']:.0f}%",
+                    str(partida["nivel_tecnologico"])
                 ]
                 
                 for i, dato in enumerate(datos):
@@ -1737,7 +1946,7 @@ class Juego:
         if self.logica.mostrar_popup_evento and self.logica.evento_actual:
             evento = self.logica.evento_actual
 
-            # Fondo oscuro degradado más sutil
+            # Fondo oscuro degradado mas sutil
             overlay = pygame.Surface((ANCHO, ALTO), pygame.SRCALPHA)
             overlay.fill((5, 5, 15, 220))
             self.pantalla.blit(overlay, (0, 0))
@@ -1972,7 +2181,7 @@ class Juego:
         pob_req = datos["pob_req"]
         pob_actual = len(self.logica.poblacion)
 
-        # 1. Comprobar Dinero y Población
+        # 1. Comprobar Dinero y Poblacion
         if self.logica.dinero >= coste and pob_actual >= pob_req:
             # COBRAR
             self.logica.dinero -= coste
@@ -1992,7 +2201,7 @@ class Juego:
             
         elif pob_actual < pob_req:
             print(f"Faltan habitantes. Requieres {pob_req}")
-            # Aquí podrías poner un cartel de "Población insuficiente"
+            # Aqui podrias poner un cartel de "Poblacion insuficiente"
         else:
             self.dialogo_dinero_insuficiente = True
             self.dinero_faltante = coste - self.logica.dinero
@@ -2025,7 +2234,7 @@ class Juego:
                 for hab in self.logica.poblacion:
                     hab.felicidad = max(0, min(100, hab.felicidad + valor))
                     
-            # 4. HABITANTES / POBLACIÓN
+            # 4. HABITANTES / POBLACION
             elif recurso in ("habitantes", "poblacion_extra"):
                 # valor puede ser porcentaje (negativo/positivo) o número entero
                 if abs(valor) < 1:
@@ -2049,10 +2258,10 @@ class Juego:
         self.mostrar_popup_evento = False
         self.evento_actual = None
 
-    def ejecutar(self):
+    async def ejecutar(self):
         while self.corriendo:
             self.pantalla.fill(NEGRO)
-            
+
             # --- VERIFICAR CAMBIO DE RANGO ---
             if self.rango_anterior is None:
                 self.rango_anterior = self.logica.rango_actual
@@ -2138,6 +2347,12 @@ class Juego:
             if self.mostrando_ranking:
                 self.dibujar_ranking()
 
+            if self.mostrando_misiones:
+                self.dibujar_misiones_popup()
+
+            if self.mostrando_confirmacion_reiniciar:
+                self.dibujar_confirmacion_reiniciar()
+
             if self.dialogo_dinero_insuficiente:
                 self.dibujar_dialogo_dinero_insuficiente()
 
@@ -2177,10 +2392,17 @@ class Juego:
                         if ev.key == pygame.K_BACKSPACE:
                             self.input_nombre_partida = self.input_nombre_partida[:-1]
                         elif ev.key == pygame.K_RETURN:
-                            self.logica.guardar_partida_con_nombre(self.input_nombre_partida if self.input_nombre_partida else f"Año {self.logica.año}")
-                            self.dialogo_guardar_abierto = False
-                            self.campo_nombre_activo = False
-                            self.logica.noticias.append({"txt": "¡Partida guardada!", "tipo": "AVISO"})
+                            resultado_guardado = self.logica.guardar_partida_con_nombre(self.input_nombre_partida if self.input_nombre_partida else f"Año {self.logica.año}")
+                            if resultado_guardado.get("exito"):
+                                self.dialogo_guardar_abierto = False
+                                self.campo_nombre_activo = False
+                                self.error_guardar_partida = ""
+                                self.logica.noticias.append({"txt": "¡Partida guardada!", "tipo": "AVISO"})
+                            else:
+                                if resultado_guardado.get("error") == "max_partidas":
+                                    self.error_guardar_partida = "Ya tienes 5 partidas. Borra una antes de crear otra."
+                                else:
+                                    self.error_guardar_partida = "No se pudo guardar la partida."
                         elif len(ev.unicode) > 0 and len(self.input_nombre_partida) < 30:
                             self.input_nombre_partida += ev.unicode
                     elif self.menu_intercambio_abierto:
@@ -2417,14 +2639,21 @@ class Juego:
                     # 5. Diálogo de guardado abierto
                     if self.dialogo_guardar_abierto:
                         if self.btn_guardar_si.collidepoint(pos):
-                            self.logica.guardar_partida_con_nombre(self.input_nombre_partida if self.input_nombre_partida else f"Año {self.logica.año}")
-                            self.dialogo_guardar_abierto = False
-                            self.campo_nombre_activo = False
-                            # Mostrar noticia de guardado
-                            self.logica.noticias.append({"txt": "¡Partida guardada!", "tipo": "AVISO"})
+                            resultado_guardado = self.logica.guardar_partida_con_nombre(self.input_nombre_partida if self.input_nombre_partida else f"Año {self.logica.año}")
+                            if resultado_guardado.get("exito"):
+                                self.dialogo_guardar_abierto = False
+                                self.campo_nombre_activo = False
+                                self.error_guardar_partida = ""
+                                self.logica.noticias.append({"txt": "¡Partida guardada!", "tipo": "AVISO"})
+                            else:
+                                if resultado_guardado.get("error") == "max_partidas":
+                                    self.error_guardar_partida = "Ya tienes 5 partidas. Borra una antes de crear otra."
+                                else:
+                                    self.error_guardar_partida = "No se pudo guardar la partida."
                         elif self.btn_guardar_no.collidepoint(pos):
                             self.dialogo_guardar_abierto = False
                             self.campo_nombre_activo = False
+                            self.error_guardar_partida = ""
                         elif hasattr(self, 'rect_input_nombre') and self.rect_input_nombre.collidepoint(pos):
                             self.campo_nombre_activo = True
                         continue
@@ -2485,6 +2714,10 @@ class Juego:
                                     self.volver_al_menu = True
                                     self.menu_ajustes_abierto = False
                                     self.reproducir_sonido("cerrar")
+                                elif opcion_id == "reiniciar":
+                                    self.mostrando_confirmacion_reiniciar = True
+                                    self.menu_ajustes_abierto = False
+                                    self.reproducir_sonido("cerrar")
                                 manejado = True
                                 break
                         
@@ -2501,6 +2734,17 @@ class Juego:
                     if self.mostrando_ranking:
                         if hasattr(self, 'btn_volver_ranking') and self.btn_volver_ranking.collidepoint(pos):
                             self.mostrando_ranking = False
+                        continue
+
+                    # 5.8 Confirmación de reiniciar capítulo
+                    if self.mostrando_confirmacion_reiniciar:
+                        if self.btn_confirmar_reiniciar.collidepoint(pos):
+                            self.logica.reiniciar_capitulo()
+                            self.mostrando_confirmacion_reiniciar = False
+                            self.reproducir_sonido("cerrar")
+                        elif self.btn_cancelar_reiniciar.collidepoint(pos):
+                            self.mostrando_confirmacion_reiniciar = False
+                            self.reproducir_sonido("cerrar")
                         continue
 
                     # 6. Prioridad Alta: Eventos Aleatorios (Popup de Si/No)
@@ -2545,8 +2789,10 @@ class Juego:
                         continue
 
                     # 7. Botones del HUD Principal (Solo si no hay popups bloqueantes)
-                    if self.btn_next.collidepoint(pos):
-                        self.logica.avanzar_año()
+                    if self.btn_next.collidepoint(pos) and self.boton_next_habilitado:
+                        self.boton_next_habilitado = False
+                        self.logica.avanzar_ano()
+                        self.boton_next_habilitado = True
 
                     elif self.btn_tienda.collidepoint(pos):
                         self.menu_compra_abierto = not self.menu_compra_abierto
@@ -2554,6 +2800,7 @@ class Juego:
                         self.mostrando_inventario = False
                         self.menu_intercambio_abierto = False
                         self.noticias_abiertas = False
+                        self.mostrando_misiones = False
                         
                     elif self.btn_intercambio.collidepoint(pos):
                         self.menu_intercambio_abierto = not self.menu_intercambio_abierto
@@ -2561,6 +2808,7 @@ class Juego:
                         self.mostrando_investigacion = False
                         self.mostrando_inventario = False
                         self.noticias_abiertas = False
+                        self.mostrando_misiones = False
                         
                     elif self.rect_hud_info.get("felicidad") and self.rect_hud_info["felicidad"].collidepoint(pos):
                         self.mostrando_detalle_estado = True
@@ -2574,6 +2822,15 @@ class Juego:
                     elif self.rect_hud_info.get("salud") and self.rect_hud_info["salud"].collidepoint(pos):
                         self.mostrando_detalle_estado = True
                         self.detalle_estado_tipo = "salud"
+
+                    elif hasattr(self, 'btn_misiones') and self.btn_misiones.collidepoint(pos):
+                        self.mostrando_misiones = not self.mostrando_misiones
+                        self.menu_ajustes_abierto = False
+                        self.mostrando_investigacion = False
+                        self.mostrando_inventario = False
+                        self.menu_compra_abierto = False
+                        self.menu_intercambio_abierto = False
+                        self.noticias_abiertas = False
                         self.menu_compra_abierto = False
                         self.mostrando_investigacion = False
                         self.mostrando_inventario = False
@@ -2586,9 +2843,14 @@ class Juego:
                         self.mostrando_inventario = False
                         self.menu_intercambio_abierto = False
                         self.noticias_abiertas = False
+                        self.mostrando_inventario = False
+                        self.menu_compra_abierto = False
+                        self.menu_intercambio_abierto = False
+                        self.noticias_abiertas = False
 
                     elif self.btn_ajustes.collidepoint(pos):
                         self.menu_ajustes_abierto = not self.menu_ajustes_abierto
+                        self.mostrando_misiones = False
                         self.reproducir_sonido("cerrar")
                         
                     elif self.btn_inventario.collidepoint(pos):
@@ -2597,7 +2859,8 @@ class Juego:
                             self.mostrando_investigacion = False 
                             self.menu_compra_abierto = False
                             self.menu_intercambio_abierto = False
-                            self.noticias_abiertas = False     
+                            self.noticias_abiertas = False    
+                            self.mostrando_misiones = False
                         else:
                             self.mostrando_aviso_inv = True
                             
@@ -2607,11 +2870,18 @@ class Juego:
                         self.mostrando_inventario = False
                         self.mostrando_investigacion = False
                         self.menu_intercambio_abierto = False
+                        self.mostrando_misiones = False
 
             # Fin del bucle de eventos
             pygame.display.flip()
             self.reloj.tick(FPS)
-        
+            await asyncio.sleep(0)  # Permite que otras tareas de asyncio se ejecuten
+
         pygame.quit()
 
-if __name__ == "__main__": Juego().ejecutar()
+async def main():
+    juego = Juego()
+    await juego.ejecutar()
+
+if __name__ == "__main__":
+    asyncio.run(main())

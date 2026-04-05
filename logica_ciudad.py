@@ -8,6 +8,17 @@ from entidades import Ciudadano, Edificio
 import json
 
 class LogicaCiudad:
+    def generar_misiones_capitulo(self):
+        # Placeholder: 10 misiones por capitulo
+        self.misiones_capitulo = []
+        for i in range(1, 11):
+            self.misiones_capitulo.append({
+                "id": f"cap{self.capitulo_actual}_{i}",
+                "descripcion": f"Misión {i} placeholder",
+                "completada": False
+            })
+        # Aquí el usuario dirá cuáles son
+
     def __init__(self, juego_referencia, nombre_partida_inicial="Nueva Partida"):
         self.juego = juego_referencia
         self.nombre_partida_actual = nombre_partida_inicial 
@@ -19,9 +30,9 @@ class LogicaCiudad:
         self.poblacion = []
         self.edificios = []
         self.noticias = []
-        self.año = 0
+        self.ano = 0
         self.rango_actual = "Aldea"
-        self.años_en_deuda = 0
+        self.anos_en_deuda = 0
         self.nivel_tecnologico = 1
 
         self.recursos = {"comida": 0, "agua": 0, "electricidad": 0}
@@ -36,6 +47,12 @@ class LogicaCiudad:
         self.investigaciones_completadas = []
         self.mostrar_popup_evento = False
         self.evento_actual = None
+
+        # Misiones
+        self.capitulo_actual = 1
+        self.misiones_capitulo = []
+        self.misiones_completadas = set()
+        self.estado_inicio_capitulo = None
 
         # IMPORTANTE: crear esto antes de cualquier lógica que lo use
         self.poblacion_inicial = 100
@@ -207,7 +224,10 @@ class LogicaCiudad:
             "comida_3": {"nivel": 3, "titulo": "Comida Nivel 3", "coste_dinero": 5000, "pob_req": 500, "edificios_desbloquea": ["Sintetizador Comida"], "color": (150, 255, 150)},
             "agua_3": {"nivel": 3, "titulo": "Agua Nivel 3", "coste_dinero": 6000, "pob_req": 550, "edificios_desbloquea": ["Extractor Atmosférico"], "color": (150, 150, 255)},
             "energia_3": {"nivel": 3, "titulo": "Energía Nivel 3", "coste_dinero": 8000, "pob_req": 600, "edificios_desbloquea": ["Central Nuclear"], "color": (255, 255, 150)}
-        }  
+        }
+
+        self.generar_misiones_capitulo()
+        self.estado_inicio_capitulo = self.guardar_estado_completo()  
 
     def limite_negativo_recurso(self, recurso):
         """Retorna el límite negativo dinámico para un recurso dado."""
@@ -299,7 +319,7 @@ class LogicaCiudad:
         """Alias para usar al inicio del juego desde __init__."""
         return self.agregar_ciudadano()
 
-    # Nota: esta definición inicial de avanzar_año se eliminó porque existe una segunda versión activa más abajo.
+    # Nota: esta definicion inicial de avanzar_ano se elimino porque existe una segunda version activa mas abajo.
 
     def actualizar_recursos_globales(self):
         limites_max = {
@@ -317,7 +337,7 @@ class LogicaCiudad:
                 limite_negativo = -(limites_max[res] // 2)
                 if self.recursos[res] < limite_negativo:
                     self.recursos[res] = limite_negativo
-                if self.año % 2 == 0:
+                if self.ano % 2 == 0:
                     self.noticias.append({"txt": f"¡ESCASEZ CRÍTICA DE {res.upper()}!", "tipo": "CRITICO"})
 
     def es_posicion_valida(self, x, y, ancho_edf=3, alto_edf=3):
@@ -374,29 +394,29 @@ class LogicaCiudad:
                             break
 
     def aplicar_efectos_edificios(self):
-        """Aplica felicidad y salud de los edificios a los ciudadanos que viven en ellos"""
+        """Aplica el impacto de edificios a felicidad y salud de la poblacion."""
+        edificios_no_casa = [e for e in self.edificios if e.nombre != "Casa"]
+        if not edificios_no_casa:
+            return
+
+        total_felicidad = sum(e.felic_impacto for e in edificios_no_casa)
+        total_salud = sum(e.salud_impacto for e in edificios_no_casa)
+        promedio_felicidad = total_felicidad / max(1, len(edificios_no_casa))
+        promedio_salud = total_salud / max(1, len(edificios_no_casa))
+
         for hab in self.poblacion:
-            bonus_felicidad = 0
-            bonus_salud = 0
-            
-            for e in self.edificios:
-                if hab in e.habitantes:
-                    bonus_felicidad += e.felic_impacto 
-                    bonus_salud += e.salud_impacto
-            
-            # Aplicar los bonificadores
-            hab.felicidad += bonus_felicidad
-            hab.salud += bonus_salud
-            
-            # Limitar a 100 máximo
-            hab.felicidad = min(100, hab.felicidad)
-            hab.salud = min(100, hab.salud)
+            hab.felicidad += promedio_felicidad
+            hab.salud += promedio_salud
+            hab.felicidad = max(0, min(100, hab.felicidad))
+            hab.salud = max(0, min(100, hab.salud))
 
     def actualizar_capacidad_max_poblacion(self):
-        """Calcula la capacidad máxima de población basada en viviendas"""
+        """Calcula la capacidad maxima de poblacion basada en viviendas"""
         casas = sum(1 for e in self.edificios if e.nombre == "Casa")
         bloques = sum(1 for e in self.edificios if e.nombre == "Bloque Pisos")
-        self.capacidad_max_poblacion = self.poblacion_inicial + (casas * 5) + (bloques * 20)
+        # Las casas iniciales ya representan la capacidad inicial de 100 habitantes.
+        # No sumamos poblacion_inicial aquí para evitar duplicar ese efecto.
+        self.capacidad_max_poblacion = (casas * 5) + (bloques * 20)
 
     def gestionar_inmigracion(self):
         """Gestiona inmigración: Crecimiento acelerado si hay espacio y recursos - RESPETA LÍMITE"""
@@ -526,7 +546,7 @@ class LogicaCiudad:
         return False
      
     def aplicar_limites_dinamicos(self):
-        """Aplica límites: (Población * Consumo * 20) + (Almacenes * 5000)"""
+        """Aplica limites: (Poblacion * Consumo * 20) + (Almacenes * 5000)"""
         n_pob = len(self.poblacion)
         
         # 1. Contar almacenes construidos (incluyendo silos y variantes)
@@ -604,7 +624,7 @@ class LogicaCiudad:
         self.dinero -= coste_dinero
 
         for recurso, valor in efectos.items():
-            # Usamos self.recursos porque así lo tienes en avanzar_año
+            # Usamos self.recursos porque asi lo tienes en avanzar_ano
             if recurso in self.recursos:
                 self.recursos[recurso] += valor
                 
@@ -637,12 +657,12 @@ class LogicaCiudad:
     def guardar_partida(self):
         """Guarda la partida actual actualizando su nombre registrado"""
         # Usar el nombre de la partida guardado en LogicaCiudad
-        nombre_guardado = self.nombre_partida_actual if self.nombre_partida_actual else f"Año {self.año}"
+        nombre_guardado = self.nombre_partida_actual if self.nombre_partida_actual else f"Ano {self.ano}"
         
         datos_partida = {
             "nombre": nombre_guardado,
             "dinero": self.dinero,
-            "año": self.año,
+            "ano": self.ano,
             "recursos": self.recursos,
             "poblacion": [
                 {
@@ -713,7 +733,7 @@ class LogicaCiudad:
         datos_partida = {
             "nombre": nombre_partida,
             "dinero": self.dinero,
-            "año": self.año,
+            "ano": self.ano,
             "recursos": self.recursos,
             "poblacion": [
                 {
@@ -753,16 +773,17 @@ class LogicaCiudad:
                 with open(ruta_partidas, "r", encoding="utf-8") as f:
                     partidas_guardadas = json.load(f)
             
-            # Buscar si ya existe una partida con este nombre  y actualizar o agregar
-            partida_encontrada = False
-            for i, p in enumerate(partidas_guardadas):
-                if p.get("nombre") == nombre_partida:
-                    partidas_guardadas[i] = datos_partida
-                    partida_encontrada = True
-                    break
+            # Buscar si ya existe una partida con este nombre y agregar sufijo si es necesario
+            nombre_base = nombre_partida
+            contador = 1
+            while any(p.get("nombre") == nombre_partida for p in partidas_guardadas):
+                contador += 1
+                nombre_partida = f"{nombre_base} ({contador})"
             
-            if not partida_encontrada:
-                partidas_guardadas.append(datos_partida)
+            if len(partidas_guardadas) >= 5:
+                return {"exito": False, "error": "max_partidas"}
+            datos_partida["nombre"] = nombre_partida
+            partidas_guardadas.append(datos_partida)
             
             # Guardar todas las partidas
             with open(ruta_partidas, "w", encoding="utf-8") as f:
@@ -770,9 +791,10 @@ class LogicaCiudad:
             
             # Actualizar nombre de partida actual después de guardar
             self.nombre_partida_actual = nombre_partida
-            
+            return {"exito": True}
         except Exception as e:
             print(f"Error guardando partida con nombre: {e}")
+            return {"exito": False, "error": "exception"}
 
     def cargar_partida(self, partida_dict=None):
         """Carga una partida. Si partida_dict es None, la crea nueva"""
@@ -784,8 +806,8 @@ class LogicaCiudad:
         # Cargar partida existente
         try:
             self.dinero = partida_dict.get("dinero", 100000)
-            self.año = partida_dict.get("año", 0)
-            self.nombre_partida_actual = partida_dict.get("nombre", f"Año {self.año}")  # 🔧 RESTAURAR nombre
+            self.ano = partida_dict.get("ano", 0)
+            self.nombre_partida_actual = partida_dict.get("nombre", f"Ano {self.ano}")  # 🔧 RESTAURAR nombre
             self.recursos = partida_dict.get("recursos", self.recursos)
             self.capacidad_max_poblacion = partida_dict.get("capacidad_max_poblacion", 100)
             self.poblacion_inicial = partida_dict.get("poblacion_inicial", 100)
@@ -811,7 +833,7 @@ class LogicaCiudad:
                     nuevo.capacidad_max_vivienda = d.get("capacidad_max_vivienda", nuevo.capacidad_max_vivienda)
                     self.edificios.append(nuevo)
 
-            # --- Reconstruir población con TODAS las propiedades ---
+            # --- Reconstruir poblacion con TODAS las propiedades ---
             self.poblacion = []
             for c in partida_dict.get("poblacion", []):
                 ciudadano = Ciudadano()
@@ -834,11 +856,11 @@ class LogicaCiudad:
             print(f"Error cargando partida: {e}")
             return False
         
-    def avanzar_año(self):
+    def avanzar_ano(self):
         if len(self.poblacion) <= 0:
             self.game_over = True
         
-        self.año += 1
+        self.ano += 1
         pob_inicial = len(self.poblacion) 
         self.noticias = []
 
@@ -866,14 +888,14 @@ class LogicaCiudad:
         self.dinero += balance_anual
 
         if self.dinero < 0:
-            self.años_en_deuda += 1
-            self.noticias.append({"txt": f"¡DEUDA! Año {self.años_en_deuda}/3", "tipo": "CRITICO"})
+            self.anos_en_deuda += 1
+            self.noticias.append({"txt": f"¡DEUDA! Ano {self.anos_en_deuda}/3", "tipo": "CRITICO"})
             for hab in self.poblacion: hab.felicidad -= 10
-            if self.años_en_deuda >= 3:
+            if self.anos_en_deuda >= 3:
                 self.game_over = True
                 return
         else:
-            self.años_en_deuda = 0
+            self.anos_en_deuda = 0
 
         if self.dinero > 50000 and self.recursos["comida"] > 4000:
             for hab in self.poblacion:
@@ -889,7 +911,7 @@ class LogicaCiudad:
         self.actualizar_recursos_globales()
         self.aplicar_limites_dinamicos()
         
-        # POBLACIÓN
+        # POBLACION
         self.asignar_vivienda_y_empleo()
         self.aplicar_efectos_edificios()
         
@@ -942,4 +964,150 @@ class LogicaCiudad:
         self.procesar_noticias(noticias_sucias)
         self.gestionar_inmigracion()
         self.verificar_rango_ciudad()
+
+        # Penalización por balances anuales negativos
+        n_pob = len(self.poblacion)
+        prod_comida = sum(e.comida for e in self.edificios if e.comida > 0)
+        cons_comida = sum(abs(e.comida) for e in self.edificios if e.comida < 0) + (n_pob * CONSUMO_COMIDA_HAB)
+        bal_comida = prod_comida - cons_comida
+
+        prod_agua = sum(e.agua for e in self.edificios if e.agua > 0)
+        cons_agua = sum(abs(e.agua) for e in self.edificios if e.agua < 0) + (n_pob * CONSUMO_AGUA_HAB)
+        bal_agua = prod_agua - cons_agua
+
+        prod_elec = sum(e.elec for e in self.edificios if e.elec > 0)
+        cons_elec = sum(abs(e.elec) for e in self.edificios if e.elec < 0) + (n_pob * CONSUMO_ELEC_HAB)
+        bal_elec = prod_elec - cons_elec
+
+        penal_felic = 0
+        penal_salud = 0
+        if bal_comida < 0: 
+            penal_felic += 2
+            penal_salud += 1
+        if bal_agua < 0: 
+            penal_felic += 2
+            penal_salud += 1
+        if bal_elec < 0: 
+            penal_felic += 2
+            penal_salud += 1
+        if balance_anual < 0: 
+            penal_felic += 2
+            penal_salud += 1
+
+        # Penalización adicional si la felicidad promedio es muy baja
+        if self.poblacion:
+            promedio_felicidad = sum(h.felicidad for h in self.poblacion) / len(self.poblacion)
+            if promedio_felicidad < 20:
+                penal_salud += 3
+
+        for c in self.poblacion:
+            c.felicidad = max(0, c.felicidad - penal_felic)
+            c.salud = max(0, c.salud - penal_salud)
+
         self.guardar_partida()
+
+        # Verificar cambio de capítulo
+        nuevo_capitulo = (self.ano // 100) + 1
+        if nuevo_capitulo > self.capitulo_actual:
+            if len(self.misiones_completadas) < len(self.misiones_capitulo):
+                # Misiones no completadas, reiniciar capítulo
+                self.ano = (self.capitulo_actual - 1) * 100
+                self.noticias.append({"txt": "Misiones no completadas. Capítulo reiniciado.", "tipo": "CRITICO"})
+                # Resetear estado al inicio del capítulo (opcional, dependiendo de lo que quiera)
+            else:
+                # Misiones completadas, avanzar capítulo
+                self.capitulo_actual = nuevo_capitulo
+                self.estado_inicio_capitulo = self.guardar_estado_completo()
+                self.generar_misiones_capitulo()
+                self.misiones_completadas = set()
+
+    def guardar_estado_completo(self):
+        """Guarda el estado completo actual para reinicio de capítulo"""
+        return {
+            "dinero": self.dinero,
+            "ano": self.ano,
+            "recursos": self.recursos.copy(),
+            "poblacion": [
+                {
+                    "nombre": c.nombre, 
+                    "edad": c.edad, 
+                    "salud": c.salud, 
+                    "felicidad": c.felicidad,
+                    "tiene_casa": c.tiene_casa,
+                    "tiene_empleo": c.tiene_empleo,
+                    "rango_etario": c.rango_etario
+                }
+                for c in self.poblacion
+            ],
+            "edificios": [
+                {
+                    "id_edificio": e.id_edificio,
+                    "nombre": e.nombre, 
+                    "x": e.x, 
+                    "y": e.y,
+                    "capacidad_max_vivienda": e.capacidad_max_vivienda
+                }
+                for e in self.edificios
+            ],
+            "capacidad_max_poblacion": self.capacidad_max_poblacion,
+            "poblacion_inicial": self.poblacion_inicial,
+            "nivel_tecnologico": self.nivel_tecnologico,
+            "investigaciones_completadas": self.investigaciones_completadas.copy(),
+            "capitulo_actual": self.capitulo_actual,
+            "misiones_completadas": self.misiones_completadas.copy()
+        }
+
+    def cargar_estado_completo(self, estado):
+        """Carga un estado completo guardado"""
+        self.dinero = estado["dinero"]
+        self.ano = estado["ano"]
+        self.recursos = estado["recursos"]
+        self.poblacion = []
+        for c in estado["poblacion"]:
+            ciudadano = Ciudadano()
+            ciudadano.nombre = c["nombre"]
+            ciudadano.edad = c["edad"]
+            ciudadano.salud = c["salud"]
+            ciudadano.felicidad = c["felicidad"]
+            ciudadano.tiene_casa = c.get("tiene_casa", False)
+            ciudadano.tiene_empleo = c.get("tiene_empleo", False)
+            ciudadano.rango_etario = c.get("rango_etario", "Niño")
+            self.poblacion.append(ciudadano)
+        
+        self.edificios = []
+        for d in estado["edificios"]:
+            tipo = next((e for e in EDIFICACIONES if e[0] == d["nombre"]), None)
+            if tipo:
+                data_final = {
+                    'nombre': tipo[0], 'costo': tipo[1], 'mantenimiento': tipo[2],
+                    'comida': tipo[3], 'agua': tipo[4], 'elec': tipo[5],
+                    'dinero': tipo[6], 'capacidad': 20,
+                    'felic': tipo[7], 'salud': 0, 'color': VERDE
+                }
+                nuevo = Edificio(data_final, d["x"], d["y"])
+                nuevo.id_edificio = d.get("id_edificio", nuevo.id_edificio)
+                nuevo.capacidad_max_vivienda = d.get("capacidad_max_vivienda", nuevo.capacidad_max_vivienda)
+                self.edificios.append(nuevo)
+        
+        self.capacidad_max_poblacion = estado["capacidad_max_poblacion"]
+        self.poblacion_inicial = estado["poblacion_inicial"]
+        self.nivel_tecnologico = estado["nivel_tecnologico"]
+        self.investigaciones_completadas = estado["investigaciones_completadas"]
+        self.capitulo_actual = estado["capitulo_actual"]
+        self.misiones_completadas = estado["misiones_completadas"]
+        
+        self.aplicar_limites_dinamicos()
+
+    def reiniciar_capitulo(self):
+        if self.capitulo_actual == 1:
+            # Reinicio total para capítulo 1
+            self.__init__(self.juego, self.nombre_partida_actual)
+        else:
+            # Reinicio al estado de inicio del capítulo
+            if self.estado_inicio_capitulo:
+                self.cargar_estado_completo(self.estado_inicio_capitulo)
+            else:
+                # Fallback
+                self.ano = (self.capitulo_actual - 1) * 100
+        self.misiones_completadas = set()
+        self.noticias.append({"txt": "Capítulo reiniciado.", "tipo": "INFO"})
