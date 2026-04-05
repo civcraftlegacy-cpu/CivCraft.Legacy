@@ -41,15 +41,20 @@
     <div id="status">Cargando CivCraft Legacy...</div>
     <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="1"></canvas>
 
+    <script src="https://pygame-web.github.io/cdn/0.9.3/pygbag.js"></script>
+
     <script type="application/javascript">
-        // Configuración interna para el archivo .tar que tienes
         config = {
             archive: "migranciudad.tar",
             fb_width: "1280",
             fb_height: "720",
             cdn: "https://pygame-web.github.io/cdn/0.9.3/"
         }
-        window.onload = async () => { await ready(config) }
+
+        // Ahora sí, cuando todo esté cargado, iniciamos
+        window.onload = async () => {
+            await ready(config);
+        }
     </script>
 </body>
 
