@@ -5,10 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>CivCraft Legacy</title>
-
-    <!-- Cargar BrowserFS -->
-    <script src="https://unpkg.com/browserfs" defer></script>
-
+    <script src="https://unpkg.com/browserfs@1.4.3/dist/browserfs.min.js"></script>
     <style>
         body {
             background-color: #000;
@@ -17,44 +14,89 @@
             overflow: hidden;
             color: white;
             font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
 
         #canvas {
             width: 100%;
             height: 100%;
-            display: block;
+            display: none;
+        }
+
+        /* Oculto hasta que se pulse el botón */
+        #ui-layer {
+            text-align: center;
+            z-index: 10;
+        }
+
+        #start-button {
+            padding: 20px 40px;
+            font-size: 24px;
+            cursor: pointer;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        #start-button:hover {
+            background: #218838;
         }
 
         #status {
-            position: absolute;
-            width: 100%;
-            top: 50%;
-            text-align: center;
+            margin-top: 20px;
+            color: #aaa;
         }
     </style>
 </head>
 
 <body>
-    <div id="status">Cargando CivCraft Legacy... (Haz clic aquí si tarda mucho)</div>
+
+    <div id="ui-layer">
+        <h1>CivCraft Legacy</h1>
+        <button id="start-button">¡JUGAR AHORA!</button>
+        <div id="status">Haz clic para cargar assets y arrancar el motor</div>
+    </div>
+
     <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="1"></canvas>
 
-    <!-- Configuración del juego -->
     <script>
+        // Configuración del juego
         window.config = {
-            archive: "migranciudad.tar",  // debe coincidir con tu .tar
+            archive: "migranciudad.tar",
             fb_width: 1280,
             fb_height: 720,
             cdn: "https://pygame-web.github.io/cdn/0.9.3/",
             autorun: 1,
             ume_block: 0,
             user_canvas_resizer: 1
-        }
+        };
+
+        const startButton = document.getElementById('start-button');
+        const uiLayer = document.getElementById('ui-layer');
+        const canvas = document.getElementById('canvas');
+
+        startButton.onclick = () => {
+            uiLayer.style.display = 'none'; // Quitamos el botón
+            canvas.style.display = 'block'; // Mostramos el juego
+
+            // Inyectamos el motor de Python SOLO tras el clic
+            // Esto asegura el "focus set" y que BrowserFS sea encontrado
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.id = 'site';
+            script.src = "https://pygame-web.github.io/cdn/0.9.3/pythons.js";
+            script.dataset.python = "python3.12";
+            script.dataset.os = "vtx,snd,gui";
+            document.body.appendChild(script);
+
+            console.log("Motor arrancado con éxito.");
+        };
     </script>
-
-    <!-- Cargar pygame-web -->
-    <script type="module" id="site" data-python="python3.12" data-os="vtx,snd,gui"
-        src="https://pygame-web.github.io/cdn/0.9.3/pythons.js"></script>
-
 </body>
 
 </html>
