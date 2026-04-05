@@ -6,14 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>CivCraft Legacy</title>
     <script src="https://pygame-web.github.io/cdn/0.9.3/browserfs.min.js"></script>
-    <script src="https://pygame-web.github.io/cdn/0.9.3/pythons.js" type="module" id="site" data-python="python3.12"
-        data-os="vtx,snd,gui" async defer></script>
     <style>
         body {
             background-color: #000;
             margin: 0;
             padding: 0;
             overflow: hidden;
+            color: white;
+            font-family: sans-serif;
         }
 
         #canvas {
@@ -23,20 +23,20 @@
         }
 
         #status {
-            color: white;
-            text-align: center;
             position: absolute;
             width: 100%;
             top: 50%;
-            font-family: sans-serif;
+            text-align: center;
         }
     </style>
 </head>
 
 <body>
-    <div id="status">Cargando CivCraft Legacy...</div>
+    <div id="status">Cargando CivCraft Legacy... (Haz clic aquí si tarda mucho)</div>
     <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="1"></canvas>
+
     <script type="application/javascript">
+        // Configuración del juego
         window.config = {
             archive: "migranciudad.tar",
             fb_width: 1280,
@@ -47,6 +47,8 @@
             user_canvas_resizer: 1
         }
     </script>
+    <script src="https://pygame-web.github.io/cdn/0.9.3/pythons.js" type="module" id="site" data-python="python3.12"
+        data-os="vtx,snd,gui"></script>
 </body>
 
 </html>
