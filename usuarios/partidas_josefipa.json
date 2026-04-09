@@ -1,0 +1,1925 @@
+[
+    {
+        "nombre": "Ano 0",
+        "dinero": 13392.0,
+        "ano": 38,
+        "recursos": {
+            "comida": 10236,
+            "agua": -3195,
+            "electricidad": -6753
+        },
+        "poblacion": [
+            {
+                "nombre": "Ramon Torres",
+                "edad": 82,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Manuel Vidal",
+                "edad": 58,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Ana Maria Torres",
+                "edad": 72,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Hugo Diaz",
+                "edad": 74,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Leo Nuñez",
+                "edad": 59,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Francisca Rodriguez",
+                "edad": 76,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Josefa Ferrer",
+                "edad": 87,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Fernando Molina",
+                "edad": 82,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Santiago Cruz",
+                "edad": 86,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Josefa Cabrera",
+                "edad": 74,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Maria Carmen Ortega",
+                "edad": 58,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Martin Arias",
+                "edad": 84,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Carlos Peña",
+                "edad": 63,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Maria Carmen Soler",
+                "edad": 63,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Jose Hernandez",
+                "edad": 75,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Maria Jesus Diez",
+                "edad": 77,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Dolores Saez",
+                "edad": 61,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Silvia Romero",
+                "edad": 81,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Nuria Santiago",
+                "edad": 64,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Izan Nieto",
+                "edad": 80,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Juan Jose Lozano",
+                "edad": 60,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Pablo Medina",
+                "edad": 59,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Rosa Maria Cano",
+                "edad": 67,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Carlos Alonso",
+                "edad": 87,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Elena Gutierrez",
+                "edad": 70,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Marta Lozano",
+                "edad": 77,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Francisco Delgado",
+                "edad": 62,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Carmen Montero",
+                "edad": 67,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Javier Reyes",
+                "edad": 76,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Maria Jesus Vicente",
+                "edad": 87,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Diego Alvarez",
+                "edad": 76,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Laura Sanz",
+                "edad": 56,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Josefa Blanco",
+                "edad": 61,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Alba Garcia",
+                "edad": 62,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Izan Vazquez",
+                "edad": 85,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Angel Ortiz",
+                "edad": 80,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Isabel Gutierrez",
+                "edad": 80,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Ana Maria Flores",
+                "edad": 71,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Sergio Gonzalez",
+                "edad": 67,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Adrian Dominguez",
+                "edad": 58,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Ana Maria Pardo",
+                "edad": 74,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Juan Arias",
+                "edad": 75,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Nuria Leon",
+                "edad": 60,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Luis Aguilar",
+                "edad": 74,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Claudia Lopez",
+                "edad": 63,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Enrique Fuentes",
+                "edad": 69,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Ivan Arias",
+                "edad": 61,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Antonio Mora",
+                "edad": 74,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Valeria Martin",
+                "edad": 56,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Iker Ramirez",
+                "edad": 65,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Miguel Angel Nuñez",
+                "edad": 68,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Alberto Lorenzo",
+                "edad": 81,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Leo Lozano",
+                "edad": 65,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Mercedes Hernandez",
+                "edad": 56,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Maria Jesus Santiago",
+                "edad": 76,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Miguel Diez",
+                "edad": 63,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Jorge Flores",
+                "edad": 65,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Lucas Crespo",
+                "edad": 62,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Francisco Pascual",
+                "edad": 80,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Beatriz Peña",
+                "edad": 76,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Juan Antonio Santana",
+                "edad": 73,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Josefa Rojas",
+                "edad": 76,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Maria Lozano",
+                "edad": 61,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Maria Pilar Guerrero",
+                "edad": 67,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Maria Pilar Gutierrez",
+                "edad": 60,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Martin Caballero",
+                "edad": 82,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Maria Jose Mora",
+                "edad": 77,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Jorge Diez",
+                "edad": 88,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Manuel Fernandez",
+                "edad": 56,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Miguel Angel Soto",
+                "edad": 72,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Sergio Ramos",
+                "edad": 87,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Santiago Martinez",
+                "edad": 63,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Sergio Vazquez",
+                "edad": 59,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Martin Jimenez",
+                "edad": 63,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Izan Fuentes",
+                "edad": 69,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Jose Manuel Marquez",
+                "edad": 81,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Adrian Carrasco",
+                "edad": 66,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Vicente Dominguez",
+                "edad": 85,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Raquel Cano",
+                "edad": 56,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Raquel Ramos",
+                "edad": 65,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Lola Montero",
+                "edad": 75,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Rosa Maria Ramos",
+                "edad": 77,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Fernando Morales",
+                "edad": 87,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Fernando Fernandez",
+                "edad": 65,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Ruben Reyes",
+                "edad": 80,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Rafael Diaz",
+                "edad": 68,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Rafael Muñoz",
+                "edad": 74,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Pedro Bravo",
+                "edad": 70,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Cristina Vazquez",
+                "edad": 79,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Lucia Caballero",
+                "edad": 69,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Rosario Vega",
+                "edad": 76,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Encarnacion Crespo",
+                "edad": 87,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Marta Cortes",
+                "edad": 72,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Jorge Campos",
+                "edad": 72,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Maria Teresa Ferrer",
+                "edad": 73,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Manuela Vidal",
+                "edad": 78,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Julia Gomez",
+                "edad": 77,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Irene Fuentes",
+                "edad": 59,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Maria Alonso",
+                "edad": 69,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Luis Cabrera",
+                "edad": 82,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Paula Ferrer",
+                "edad": 69,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Sergio Mora",
+                "edad": 56,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Fernando Moreno",
+                "edad": 70,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Concepcion Marin",
+                "edad": 84,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Anciano"
+            },
+            {
+                "nombre": "Blanca Rodriguez",
+                "edad": 57,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Ramon Suarez",
+                "edad": 32,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Maria Dolores Santana",
+                "edad": 36,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Maria Jesus Herrera",
+                "edad": 36,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Sergio Herrera",
+                "edad": 31,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Leo Leon",
+                "edad": 28,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Francisca Lozano",
+                "edad": 46,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Sergio Lozano",
+                "edad": 54,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Mateo Arias",
+                "edad": 46,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Daniel Herrera",
+                "edad": 42,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Andres Reyes",
+                "edad": 40,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Juan Antonio Marquez",
+                "edad": 46,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Laura Vazquez",
+                "edad": 53,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Maria Jose Iglesias",
+                "edad": 51,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Claudia Flores",
+                "edad": 41,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Laura Medina",
+                "edad": 35,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Elena Perez",
+                "edad": 43,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Hugo Serrano",
+                "edad": 40,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Ivan Mendez",
+                "edad": 50,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Irene Ruiz",
+                "edad": 53,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Nuria Marin",
+                "edad": 26,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Valeria Carmona",
+                "edad": 24,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Iker Calvo",
+                "edad": 52,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "David Carrasco",
+                "edad": 53,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Martin Fuentes",
+                "edad": 40,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Fernando Mendez",
+                "edad": 52,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Angel Reyes",
+                "edad": 44,
+                "salud": 100,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Francisca Jimenez",
+                "edad": 38,
+                "salud": 87.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Ramon Medina",
+                "edad": 46,
+                "salud": 87.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Silvia Parra",
+                "edad": 37,
+                "salud": 87.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Paula Gallardo",
+                "edad": 51,
+                "salud": 87.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Ruben Roman",
+                "edad": 46,
+                "salud": 87.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Antonio Parra",
+                "edad": 25,
+                "salud": 87.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Vicente Dominguez",
+                "edad": 33,
+                "salud": 87.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Marta Martinez",
+                "edad": 44,
+                "salud": 87.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Noelia Vargas",
+                "edad": 23,
+                "salud": 87.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Francisca Dominguez",
+                "edad": 30,
+                "salud": 87.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Rocio Hidalgo",
+                "edad": 31,
+                "salud": 87.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Claudia Blanco",
+                "edad": 25,
+                "salud": 87.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Jorge Lopez",
+                "edad": 52,
+                "salud": 84.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Concepcion Molina",
+                "edad": 40,
+                "salud": 84.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Juan Jose Soto",
+                "edad": 44,
+                "salud": 84.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Francisca Alvarez",
+                "edad": 22,
+                "salud": 84.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Gemma Martinez",
+                "edad": 27,
+                "salud": 84.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Encarnacion Vidal",
+                "edad": 34,
+                "salud": 84.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Maria Dolores Moya",
+                "edad": 26,
+                "salud": 84.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Francisco Javier Delgado",
+                "edad": 28,
+                "salud": 84.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Cristina Gutierrez",
+                "edad": 46,
+                "salud": 84.0,
+                "felicidad": 100,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Maria Jose Lopez",
+                "edad": 36,
+                "salud": 81.0,
+                "felicidad": 92.0,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Pedro Marin",
+                "edad": 39,
+                "salud": 81.0,
+                "felicidad": 92.0,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Isabel Marquez",
+                "edad": 27,
+                "salud": 81.0,
+                "felicidad": 92.0,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Concepcion Santiago",
+                "edad": 47,
+                "salud": 81.0,
+                "felicidad": 92.0,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Juan Carlos Delgado",
+                "edad": 21,
+                "salud": 81.0,
+                "felicidad": 92.0,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Iker Bravo",
+                "edad": 33,
+                "salud": 81.0,
+                "felicidad": 92.0,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Claudia Cabrera",
+                "edad": 28,
+                "salud": 81.0,
+                "felicidad": 92.0,
+                "tiene_casa": true,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Ana Maria Gimenez",
+                "edad": 31,
+                "salud": 80,
+                "felicidad": 80,
+                "tiene_casa": false,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Silvia Peña",
+                "edad": 40,
+                "salud": 80,
+                "felicidad": 80,
+                "tiene_casa": false,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Miguel Angel Caballero",
+                "edad": 20,
+                "salud": 80,
+                "felicidad": 80,
+                "tiene_casa": false,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Jose Gallego",
+                "edad": 32,
+                "salud": 80,
+                "felicidad": 80,
+                "tiene_casa": false,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Juan Martinez",
+                "edad": 20,
+                "salud": 80,
+                "felicidad": 80,
+                "tiene_casa": false,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            },
+            {
+                "nombre": "Maria Carmen Molina",
+                "edad": 31,
+                "salud": 80,
+                "felicidad": 80,
+                "tiene_casa": false,
+                "tiene_empleo": false,
+                "rango_etario": "Adulto"
+            }
+        ],
+        "edificios": [
+            {
+                "id_edificio": "ce56a445-66ce-44ad-9e9c-8d0d9603920e",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "f61a1c37-1361-4bff-a519-4c2b54da579a",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "61712ffd-8fa5-4f1e-9553-20bd7c14c10a",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "d9c2f705-1f97-4740-af39-9f34da171ea9",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "c599d255-59a1-4e22-b84b-72496c136792",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "41a2403f-0cd4-42f1-a1c8-04c1a9019b06",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "cde630bf-4c1e-4f3f-89bf-1c05358ab71b",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "ad439b24-7548-4983-ac8e-d5428b4f9408",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "a99beaa9-98cd-4d76-a81a-db571de655e2",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "2462f40a-838c-445e-8055-5c57a50af184",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "8ae5ab38-4071-44cd-86dd-858e58dca91f",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "d634465d-b96d-4247-b3a8-556857483773",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "e48bb0f8-6082-4521-af25-74ff2475429d",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "b43e42d9-5bb7-446e-a84b-d587c398d49e",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "5ea9f6aa-1489-4465-9a97-a1d5b9aa2790",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "6e67c24f-d433-45e2-bfa1-7aff00c8b9f0",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "7810c677-1351-4c56-812b-68b040de6dfa",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "33512d22-8676-472f-995d-4293519ab6aa",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "100741d4-781c-4a2f-94b1-568a07c1e199",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "83cfa023-f7c9-4774-9beb-3852c4114ca4",
+                "nombre": "Casa",
+                "x": -1000,
+                "y": -1000,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "3c5fb1c8-f2ac-40ae-9bbe-f26d4106ed71",
+                "nombre": "Casa",
+                "x": 166,
+                "y": 210,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "0ddafa9c-e456-4060-b993-406ca137cbc0",
+                "nombre": "Granja",
+                "x": 409,
+                "y": 76,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "1bea00bd-6f47-4e3d-832b-4bc09ecdefb5",
+                "nombre": "Granja",
+                "x": 195,
+                "y": 240,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "2110e7c8-68f5-4ae8-a311-6dda51e94e8e",
+                "nombre": "Planta Agua",
+                "x": 111,
+                "y": 33,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "73a4a885-69cc-4dd1-b30e-4287603a1659",
+                "nombre": "Planta Agua",
+                "x": 152,
+                "y": 137,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "53f9a327-5455-4ad9-b595-94e4880bd01b",
+                "nombre": "Granja",
+                "x": 422,
+                "y": 5,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "4a87a92a-1001-4375-8de3-69333e4214be",
+                "nombre": "Granja",
+                "x": 249,
+                "y": 176,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "92515058-2c49-4fa5-8216-397ef8471f28",
+                "nombre": "Granja",
+                "x": 306,
+                "y": 72,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "542c96b8-eede-4ff4-9b56-616ac78e9a22",
+                "nombre": "Granja",
+                "x": 366,
+                "y": 117,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "e34262a5-236f-4ce0-8118-024daca667da",
+                "nombre": "Granja",
+                "x": 550,
+                "y": 165,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "6c0811db-1718-4099-92d5-584c6073bba8",
+                "nombre": "Granja",
+                "x": 283,
+                "y": 219,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "3f019f3a-1fd1-4ff2-8578-37a3a5467aaa",
+                "nombre": "Granja",
+                "x": 383,
+                "y": 110,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "d14cb1dd-e3d2-404b-b37a-8de5e9265c87",
+                "nombre": "Granja",
+                "x": 442,
+                "y": 85,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "0a32e256-e187-4fe1-a5bd-4500dc5a8666",
+                "nombre": "Granja",
+                "x": 373,
+                "y": 48,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "776ee293-ea9c-4503-889d-eff897cbc93f",
+                "nombre": "Granja",
+                "x": 140,
+                "y": 209,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "aceecf63-2b2a-42e0-a4a9-c7b519606cdc",
+                "nombre": "Granja",
+                "x": 415,
+                "y": 65,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "e9fe9fc6-050b-4bca-bb6e-b8568cac99cb",
+                "nombre": "Granja",
+                "x": 187,
+                "y": 106,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "16ad32ab-7cb8-4c05-9b6c-c7c9ff06bf64",
+                "nombre": "Granja",
+                "x": 436,
+                "y": 268,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "3df80c44-0f9a-4daa-9a19-d38f73069234",
+                "nombre": "Almacen de Comida",
+                "x": 408,
+                "y": 147,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "64a5c604-76e8-4f7d-8684-cd55366936c4",
+                "nombre": "Almacen de Comida",
+                "x": 227,
+                "y": 275,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "ac9df7c0-ebb3-45df-857c-6451c47bf6c0",
+                "nombre": "Almacen de Comida",
+                "x": 360,
+                "y": 157,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "a2a9c6af-969b-4012-883c-36394693f03e",
+                "nombre": "Granja",
+                "x": 586,
+                "y": 247,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "80309221-db3f-40c2-b4a3-ded97799cad0",
+                "nombre": "Granja",
+                "x": 129,
+                "y": 248,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "ca81e69b-76e6-47ff-a72c-ea634a2d3291",
+                "nombre": "Casa",
+                "x": 301,
+                "y": 5,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "deb815e3-7036-4238-baff-1af2eac3605e",
+                "nombre": "Casa",
+                "x": 314,
+                "y": 235,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "e0e61728-053f-4dfc-a6db-d348689e66db",
+                "nombre": "Casa",
+                "x": 156,
+                "y": 55,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "6f537ddc-0346-4259-9910-a8fe679c50a5",
+                "nombre": "Casa",
+                "x": 466,
+                "y": 268,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "c1e9c4ec-f96b-4cee-9754-9163ceb65211",
+                "nombre": "Casa",
+                "x": 258,
+                "y": 107,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "e29aef15-6213-4f6f-bec1-9060e247e010",
+                "nombre": "Casa",
+                "x": 180,
+                "y": 35,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "701c5076-58cc-4012-a7b8-9ed07fc1e13b",
+                "nombre": "Casa",
+                "x": 151,
+                "y": 33,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "8481ae4f-df4e-4cfe-b468-86b811f139cd",
+                "nombre": "Casa",
+                "x": 163,
+                "y": 176,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "98389e0d-918a-4951-90d2-77c449a7259c",
+                "nombre": "Casa",
+                "x": 93,
+                "y": 147,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "26645de9-578f-4dfb-9a7b-3996dceb18b0",
+                "nombre": "Casa",
+                "x": 317,
+                "y": 272,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "b76e7440-e562-47f1-b787-b8a255730a6f",
+                "nombre": "Casa",
+                "x": 459,
+                "y": 18,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "22674af9-6a25-46b8-8cb0-1e275fc9be7e",
+                "nombre": "Casa",
+                "x": 257,
+                "y": 86,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "e1ac717e-f53f-4994-96c0-4cc6950578a0",
+                "nombre": "Casa",
+                "x": 235,
+                "y": 0,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "c042a6ba-c96c-487c-8793-e65efc02d53f",
+                "nombre": "Casa",
+                "x": 588,
+                "y": 236,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "c19411bf-39cd-4c6b-98e7-64fa26e92473",
+                "nombre": "Casa",
+                "x": 38,
+                "y": 65,
+                "capacidad_max_vivienda": 5
+            },
+            {
+                "id_edificio": "93cf8407-46b4-4e83-9144-338c3a4a408c",
+                "nombre": "Granja",
+                "x": 420,
+                "y": 25,
+                "capacidad_max_vivienda": 0
+            },
+            {
+                "id_edificio": "e9067cd3-d09f-41ec-8452-b07fdc0032a2",
+                "nombre": "Central Elec.",
+                "x": 449,
+                "y": 161,
+                "capacidad_max_vivienda": 0
+            }
+        ],
+        "capacidad_max_poblacion": 180,
+        "poblacion_inicial": 100,
+        "nivel_tecnologico": 1,
+        "investigaciones_completadas": []
+    }
+]
