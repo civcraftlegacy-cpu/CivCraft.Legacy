@@ -8,6 +8,67 @@ from entidades import Ciudadano, Edificio
 import json
 
 class LogicaCiudad:
+    def _crear_poblacion_stats_vacia(self):
+        return {
+            "poblacion_total": 0,
+            "rangos_etarios": {"Niños": 0, "Adultos": 0, "Ancianos": 0},
+            "empleo": {"empleados": 0, "desempleados": 0},
+            "vivienda": {"con_casa": 0, "sin_casa": 0},
+            "promedios": {"salud_media": 80.0, "felicidad_media": 80.0},
+        }
+
+    def get_poblacion_total(self):
+        return int(self.poblacion_stats.get("poblacion_total", 0))
+
+    def get_felicidad_media(self):
+        return float(self.poblacion_stats.get("promedios", {}).get("felicidad_media", 0.0))
+
+    def get_salud_media(self):
+        return float(self.poblacion_stats.get("promedios", {}).get("salud_media", 0.0))
+
+    def normalizar_poblacion_stats(self):
+        self.poblacion_stats.setdefault("rangos_etarios", {})
+        self.poblacion_stats.setdefault("empleo", {})
+        self.poblacion_stats.setdefault("vivienda", {})
+        self.poblacion_stats.setdefault("promedios", {})
+
+        rangos = self.poblacion_stats["rangos_etarios"]
+        rangos.setdefault("Niños", 0)
+        rangos.setdefault("Adultos", 0)
+        rangos.setdefault("Ancianos", 0)
+
+        rangos["Niños"] = max(0, int(rangos["Niños"]))
+        rangos["Adultos"] = max(0, int(rangos["Adultos"]))
+        rangos["Ancianos"] = max(0, int(rangos["Ancianos"]))
+
+        total = rangos["Niños"] + rangos["Adultos"] + rangos["Ancianos"]
+        self.poblacion_stats["poblacion_total"] = max(0, int(total))
+
+        proms = self.poblacion_stats["promedios"]
+        proms["salud_media"] = max(0.0, min(100.0, float(proms.get("salud_media", 80.0))))
+        proms["felicidad_media"] = max(0.0, min(100.0, float(proms.get("felicidad_media", 80.0))))
+
+        self._recalcular_estado_social()
+
+    def _recalcular_estado_social(self):
+        rangos = self.poblacion_stats.get("rangos_etarios", {})
+        total = max(0, int(rangos.get("Niños", 0))) + max(0, int(rangos.get("Adultos", 0))) + max(0, int(rangos.get("Ancianos", 0)))
+        self.poblacion_stats["poblacion_total"] = total
+        adultos = max(0, int(rangos.get("Adultos", 0)))
+
+        con_casa = min(total, max(0, int(self.capacidad_max_poblacion)))
+        sin_casa = max(0, total - con_casa)
+
+        puestos_trabajo = sum(
+            15 for e in self.edificios
+            if not getattr(e, "es_residencial", False) and e.nombre != "Parque"
+        )
+        empleados = min(adultos, puestos_trabajo)
+        desempleados = max(0, total - empleados)
+
+        self.poblacion_stats["vivienda"] = {"con_casa": int(con_casa), "sin_casa": int(sin_casa)}
+        self.poblacion_stats["empleo"] = {"empleados": int(empleados), "desempleados": int(desempleados)}
+
     def generar_misiones_capitulo(self):
         self.misiones_capitulo = [
             {"id": f"cap{self.capitulo_actual}_{i}"} for i in range(10)
@@ -15,10 +76,12 @@ class LogicaCiudad:
 
     def verificar_mision(self, idx):
         """Devuelve True si los requisitos de la misión idx están cumplidos."""
-        pob = len(self.poblacion)
-        avg_felic = (sum(h.felicidad for h in self.poblacion) / pob) if pob > 0 else 0
-        avg_salud = (sum(h.salud for h in self.poblacion) / pob) if pob > 0 else 0
+        pob = self.get_poblacion_total()
+        avg_felic = self.get_felicidad_media()
+        avg_salud = self.get_salud_media()
         edificios_reales = [e for e in self.edificios if e.x >= 0 and e.y >= 0]
+        avances = self.niveles_arbol.get("AVANCES", {})
+        nodos_av = ["ava_comida", "ava_edificios", "ava_energia", "ava_agua"]
 
         if self.capitulo_actual == 1:
             # ── CAPÍTULO 1 ──────────────────────────────────────────────────
@@ -26,7 +89,7 @@ class LogicaCiudad:
             if idx == 1: return len(edificios_reales) >= 1
             if idx == 2: return self.intercambios_realizados >= 1
             if idx == 3: return any(v >= 10000 for v in self.recursos.values())
-            if idx == 4: return len(self.investigaciones_completadas) >= 1
+            if idx == 4: return any(avances.get(n, 0) >= 1 for n in nodos_av)
             if idx == 5: return avg_felic >= 90
             if idx == 6: return avg_salud >= 95
             if idx == 7: return pob >= 200
@@ -49,8 +112,7 @@ class LogicaCiudad:
             if idx == 5: return pob >= 400
             if idx == 6: return all(v >= 20000 for v in self.recursos.values())
             if idx == 7:
-                nivel3_inv = {"comida_3", "agua_3", "energia_3", "alojamiento_3"}
-                return any(inv in self.investigaciones_completadas for inv in nivel3_inv)
+                return any(avances.get(n, 0) >= 3 for n in nodos_av)
             if idx == 8:
                 nivel3_edif = {"Sintetizador Comida", "Extractor Atmosférico", "Central Nuclear", "Rascacielos"}
                 return any(e.nombre in nivel3_edif for e in edificios_reales)
@@ -63,18 +125,16 @@ class LogicaCiudad:
             if idx == 0: return avg_felic >= 95 and avg_salud >= 95
             if idx == 1: return all(v >= 30000 for v in self.recursos.values())
             if idx == 2:
-                nivel4_edif = {"Megaplex Urbano", "Biofábrica", "Planta de Ósmosis", "Reactor de Fusión"}
-                return any(e.nombre in nivel4_edif for e in edificios_reales)
+                nivel5_edif = {"Megaplex Urbano", "Biofábrica", "Planta de Ósmosis", "Reactor de Fusión"}
+                return any(e.nombre in nivel5_edif for e in edificios_reales)
             if idx == 3: return pob >= 500
             if idx == 4: return len(edificios_reales) >= 20
             if idx == 5: return pob >= 600
             if idx == 6: return all(v >= 50000 for v in self.recursos.values())
             if idx == 7:
-                nivel3_reqs = {"comida_3", "agua_3", "energia_3", "alojamiento_3"}
-                return all(inv in self.investigaciones_completadas for inv in nivel3_reqs)
+                return all(avances.get(n, 0) >= 3 for n in nodos_av)
             if idx == 8:
-                nivel4_inv = {"comida_4", "agua_4", "energia_4", "alojamiento_4"}
-                return any(inv in self.investigaciones_completadas for inv in nivel4_inv)
+                return any(avances.get(n, 0) >= 5 for n in nodos_av)
             if idx == 9:
                 return (self.dinero >= 500000 and
                         any(v >= 100000 for v in self.recursos.values()))
@@ -84,16 +144,15 @@ class LogicaCiudad:
             if idx == 0: return avg_felic >= 97 and avg_salud >= 97
             if idx == 1: return all(v >= 70000 for v in self.recursos.values())
             if idx == 2:
-                nivel4_todos = {"Megaplex Urbano", "Biofábrica", "Planta de Ósmosis", "Reactor de Fusión"}
+                nivel5_todos = {"Megaplex Urbano", "Biofábrica", "Planta de Ósmosis", "Reactor de Fusión"}
                 nombres_edif = {e.nombre for e in edificios_reales}
-                return nivel4_todos.issubset(nombres_edif)
+                return nivel5_todos.issubset(nombres_edif)
             if idx == 3: return pob >= 700
             if idx == 4: return len(edificios_reales) >= 25
             if idx == 5: return pob >= 900
             if idx == 6: return all(v >= 120000 for v in self.recursos.values())
             if idx == 7:
-                nivel4_todas = {"comida_4", "agua_4", "energia_4", "alojamiento_4"}
-                return all(inv in self.investigaciones_completadas for inv in nivel4_todas)
+                return all(avances.get(n, 0) >= 5 for n in nodos_av)
             if idx == 8: return self.nivel_tecnologico >= 4
             if idx == 9:
                 return (self.dinero >= 3000000 and
@@ -104,15 +163,14 @@ class LogicaCiudad:
             if idx == 0: return avg_felic >= 99 and avg_salud >= 99
             if idx == 1: return all(v >= 150000 for v in self.recursos.values())
             if idx == 2:
-                nivel4_edif = {"Megaplex Urbano", "Biofábrica", "Planta de Ósmosis", "Reactor de Fusión"}
-                return sum(1 for e in edificios_reales if e.nombre in nivel4_edif) >= 3
+                nivel6_edif = {"Torre Inteligente", "Megagranja Vertical", "Red de Antimateria", "Precipitador Atmosférico"}
+                return any(e.nombre in nivel6_edif for e in edificios_reales)
             if idx == 3: return pob >= 1000
             if idx == 4: return len(edificios_reales) >= 35
             if idx == 5: return pob >= 1200
             if idx == 6: return all(v >= 250000 for v in self.recursos.values())
             if idx == 7:
-                nivel4_todas = {"comida_4", "agua_4", "energia_4", "alojamiento_4"}
-                return all(inv in self.investigaciones_completadas for inv in nivel4_todas)
+                return all(avances.get(n, 0) >= 5 for n in nodos_av)
             if idx == 8: return self.dinero >= 5000000
             if idx == 9:
                 return (self.dinero >= 10000000 and
@@ -126,6 +184,7 @@ class LogicaCiudad:
         # Definimos TODO lo que el código pueda preguntar después
         self.game_over = False
         self.dinero = 100000
+        self.poblacion_stats = self._crear_poblacion_stats_vacia()
         self.poblacion = []
         self.edificios = []
         self.noticias = []
@@ -146,6 +205,22 @@ class LogicaCiudad:
         self.investigaciones_completadas = set()
         self.mostrar_popup_evento = False
         self.evento_actual = None
+
+        # ── Bonificaciones del árbol tecnológico de Economía ──────────────────
+        self.investigaciones_ano  = {}  # {inv_id: año en que fue completada}
+        self.arbol_subidas_ano    = {}  # {"cat::nid": [año1, año2, ...]} — un año por nivel subido
+
+        # ── Bonificaciones del árbol tecnológico de Economía ──────────────────
+        self.bonus_ingreso_pct       = 0.0   # % extra sobre impuestos (acumulado)
+        self.descuento_mantenimiento = 0.0   # % reducción en coste de mantenimiento
+        self.descuento_edificios     = 0.0   # % reducción en precio de compra de edificios
+        self.reduccion_tiempo_investigacion = 0.0
+        self.niveles_arbol           = {}    # { categoria: { nod_id: nivel } } (serializable)
+        self.bonus_capacidad_comida_inv = 0  # bonus de capacidad por investigaciones
+        self.bonus_capacidad_agua_inv = 0
+        self.bonus_capacidad_energia_inv = 0
+        self.ultimo_resumen_investigacion = []
+        self.ultimo_titulo_investigacion = ""
 
         # Misiones
         self.capitulo_actual = 1
@@ -168,31 +243,20 @@ class LogicaCiudad:
         # Primero calculamos los límites reales (esto sobreescribirá los 10000 de arriba)
         self.aplicar_limites_dinamicos() 
 
-        # Ahora sí, agregamos los ciudadanos iniciales   
-        for i in range(100):
-            self.agregar_ciudadano_nacimiento()
+        # Población inicial en formato agregado
+        self.poblacion_stats["poblacion_total"] = 100
+        self.poblacion_stats["rangos_etarios"] = {"Niños": 0, "Adultos": 100, "Ancianos": 0}
+        self.poblacion_stats["promedios"] = {"salud_media": 80.0, "felicidad_media": 80.0}
 
         # Añadimos viviendas iniciales invisibles que no consumen recursos,
         # para que la partida empiece con capacidad para 100 ciudadanos.
         for _ in range(20):
-            casa_inicial = Edificio({
-                'nombre': 'Casa',
-                'costo': 0,
-                'mantenimiento': 0,
-                'comida': 0,
-                'agua': 0,
-                'elec': 0,
-                'dinero': 0,
-                'capacidad': 5,
-                'felic': 0,
-                'salud': 0,
-                'color': VERDE
-            }, -1000, -1000)
+            casa_inicial = Edificio(self._crear_data_edificio("Casa", es_inicial_gratis=True), -1000, -1000)
             self.edificios.append(casa_inicial)
 
         self.asignar_vivienda_y_empleo()
 
-        cant_personas = len(self.poblacion)
+        cant_personas = self.get_poblacion_total()
         self.poblacion_inicial = cant_personas
         self.capacidad_max_poblacion = cant_personas
 
@@ -209,6 +273,8 @@ class LogicaCiudad:
         self.tiempo_investigacion = 0  
         self.tiempo_total_req = 300    
         self.investigaciones_completadas = set()
+        self.investigaciones_ano = {}
+        self.arbol_subidas_ano = {}
         
         self.mostrar_popup_evento = False
         self.evento_actual = None
@@ -322,24 +388,132 @@ class LogicaCiudad:
 
         self.datos_investigacion = {
             # ── NIVEL 2 ───────────────────────────────────────────────────
-            "comida_2":       {"nivel": 2, "titulo": "Comida Nivel 2",       "coste_dinero": 2500,  "pob_req": 200, "edificios_desbloquea": ["Granja Ind.", "Silo Gigante"],    "color": (100, 255, 100)},
-            "agua_2":         {"nivel": 2, "titulo": "Agua Nivel 2",         "coste_dinero": 3000,  "pob_req": 250, "edificios_desbloquea": ["Depuradora"],                      "color": (100, 100, 255)},
-            "energia_2":      {"nivel": 2, "titulo": "Energía Nivel 2",      "coste_dinero": 4000,  "pob_req": 300, "edificios_desbloquea": ["Central Térmica"],               "color": (255, 255, 100)},
-            "alojamiento_2":  {"nivel": 2, "titulo": "Alojamiento Nivel 2",  "coste_dinero": 200,   "pob_req": 150, "edificios_desbloquea": ["Bloque Pisos"],                  "color": (255, 200, 100)},
+            "comida_2":       {"nivel": 2, "titulo": "Comida Nivel 2",       "coste_dinero": 2500,  "pob_req": 200, "edificios_desbloquea": ["Granja Ind.", "Silo Gigante"],    "color": (100, 255, 100), "efecto": {"bonus_capacidad_comida": 2500}},
+            "agua_2":         {"nivel": 2, "titulo": "Agua Nivel 2",         "coste_dinero": 3000,  "pob_req": 250, "edificios_desbloquea": ["Depuradora"],                      "color": (100, 100, 255), "efecto": {"bonus_capacidad_agua": 2500}},
+            "energia_2":      {"nivel": 2, "titulo": "Energía Nivel 2",      "coste_dinero": 4000,  "pob_req": 300, "edificios_desbloquea": ["Central Térmica"],               "color": (255, 255, 100), "efecto": {"bonus_capacidad_energia": 2500}},
+            "alojamiento_2":  {"nivel": 2, "titulo": "Alojamiento Nivel 2",  "coste_dinero": 200,   "pob_req": 150, "edificios_desbloquea": ["Bloque Pisos"],                  "color": (255, 200, 100), "efecto": {"bonus_ingreso_pct": 0.02}},
             # ── NIVEL 3 ───────────────────────────────────────────────────
-            "comida_3":       {"nivel": 3, "titulo": "Comida Nivel 3",       "coste_dinero": 5000,  "pob_req": 500, "edificios_desbloquea": ["Sintetizador Comida"],           "color": (150, 255, 150)},
-            "agua_3":         {"nivel": 3, "titulo": "Agua Nivel 3",         "coste_dinero": 6000,  "pob_req": 550, "edificios_desbloquea": ["Extractor Atmosférico"],        "color": (150, 150, 255)},
-            "energia_3":      {"nivel": 3, "titulo": "Energía Nivel 3",      "coste_dinero": 8000,  "pob_req": 600, "edificios_desbloquea": ["Central Nuclear"],              "color": (255, 255, 150)},
-            "alojamiento_3":  {"nivel": 3, "titulo": "Alojamiento Nivel 3",  "coste_dinero": 4500,  "pob_req": 400, "edificios_desbloquea": ["Rascacielos"],                  "color": (255, 180, 80)},
+            "comida_3":       {"nivel": 3, "titulo": "Comida Nivel 3",       "coste_dinero": 5000,  "pob_req": 500, "edificios_desbloquea": ["Sintetizador Comida"],           "color": (150, 255, 150), "efecto": {"bonus_capacidad_comida": 5000}},
+            "agua_3":         {"nivel": 3, "titulo": "Agua Nivel 3",         "coste_dinero": 6000,  "pob_req": 550, "edificios_desbloquea": ["Extractor Atmosférico"],        "color": (150, 150, 255), "efecto": {"bonus_capacidad_agua": 5000}},
+            "energia_3":      {"nivel": 3, "titulo": "Energía Nivel 3",      "coste_dinero": 8000,  "pob_req": 600, "edificios_desbloquea": ["Central Nuclear"],              "color": (255, 255, 150), "efecto": {"bonus_capacidad_energia": 5000}},
+            "alojamiento_3":  {"nivel": 3, "titulo": "Alojamiento Nivel 3",  "coste_dinero": 4500,  "pob_req": 400, "edificios_desbloquea": ["Rascacielos"],                  "color": (255, 180, 80), "efecto": {"bonus_ingreso_pct": 0.03}},
             # ── NIVEL 4 ───────────────────────────────────────────────────
-            "comida_4":       {"nivel": 4, "titulo": "Producción Avanzada",  "coste_dinero": 15000, "pob_req": 700, "edificios_desbloquea": ["Biofábrica"],                   "color": (180, 255, 180)},
-            "agua_4":         {"nivel": 4, "titulo": "Hidráulica Avanzada",  "coste_dinero": 18000, "pob_req": 750, "edificios_desbloquea": ["Planta de Ósmosis"],           "color": (180, 180, 255)},
-            "energia_4":      {"nivel": 4, "titulo": "Fusión Nuclear",       "coste_dinero": 25000, "pob_req": 800, "edificios_desbloquea": ["Reactor de Fusión"],           "color": (255, 255, 200)},
-            "alojamiento_4":  {"nivel": 4, "titulo": "Urbanismo Avanzado",   "coste_dinero": 12000, "pob_req": 650, "edificios_desbloquea": ["Megaplex Urbano"],             "color": (255, 220, 120)},
+            "comida_4":       {"nivel": 4, "titulo": "Producción Avanzada",  "coste_dinero": 15000, "pob_req": 700, "edificios_desbloquea": ["Biofábrica"],                   "color": (180, 255, 180), "efecto": {"bonus_capacidad_comida": 8000, "descuento_mantenimiento": 0.02}},
+            "agua_4":         {"nivel": 4, "titulo": "Hidráulica Avanzada",  "coste_dinero": 18000, "pob_req": 750, "edificios_desbloquea": ["Planta de Ósmosis"],           "color": (180, 180, 255), "efecto": {"bonus_capacidad_agua": 8000, "descuento_mantenimiento": 0.02}},
+            "energia_4":      {"nivel": 4, "titulo": "Fusión Nuclear",       "coste_dinero": 25000, "pob_req": 800, "edificios_desbloquea": ["Reactor de Fusión"],           "color": (255, 255, 200), "efecto": {"bonus_capacidad_energia": 8000, "bonus_ingreso_pct": 0.05}},
+            "alojamiento_4":  {"nivel": 4, "titulo": "Urbanismo Avanzado",   "coste_dinero": 12000, "pob_req": 650, "edificios_desbloquea": ["Megaplex Urbano"],             "color": (255, 220, 120), "efecto": {"bonus_ingreso_pct": 0.08, "descuento_edificios": 0.05}},
         }
 
         self.generar_misiones_capitulo()
         self.estado_inicio_capitulo = self.guardar_estado_completo()  
+
+    def _formatear_efecto_investigacion(self, efecto):
+        if not efecto:
+            return []
+        resumen = []
+        for clave, valor in efecto.items():
+            if clave == "bonus_ingreso_pct":
+                resumen.append(f"Ingresos por impuestos: +{int(valor * 100)}%")
+            elif clave == "descuento_mantenimiento":
+                resumen.append(f"Mantenimiento: -{int(valor * 100)}%")
+            elif clave == "descuento_edificios":
+                resumen.append(f"Coste de edificios: -{int(valor * 100)}%")
+            elif clave == "bonus_capacidad_comida":
+                resumen.append(f"Capacidad comida: +{int(valor):,}")
+            elif clave == "bonus_capacidad_agua":
+                resumen.append(f"Capacidad agua: +{int(valor):,}")
+            elif clave == "bonus_capacidad_energia":
+                resumen.append(f"Capacidad energía: +{int(valor):,}")
+            else:
+                resumen.append(f"{clave}: {valor}")
+        return resumen
+
+    @staticmethod
+    def _es_edificio_inicial_guardado(datos_guardados):
+        return bool(datos_guardados.get("es_inicial_gratis", False)) or (
+            datos_guardados.get("nombre") == "Casa"
+            and datos_guardados.get("x", 0) < 0
+            and datos_guardados.get("y", 0) < 0
+        )
+
+    def _crear_data_edificio(self, nombre_edificio, es_inicial_gratis=False):
+        if es_inicial_gratis:
+            return {
+                'nombre': nombre_edificio,
+                'costo': 0,
+                'mantenimiento': 0,
+                'comida': 0,
+                'agua': 0,
+                'elec': 0,
+                'dinero': 0,
+                'capacidad': 5,
+                'felic': 0,
+                'salud': 0,
+                'color': VERDE,
+                'es_inicial_gratis': True,
+            }
+
+        tipo = next((e for e in EDIFICACIONES if e[0] == nombre_edificio), None)
+        if not tipo:
+            return None
+
+        return {
+            'nombre': tipo[0],
+            'costo': tipo[1],
+            'mantenimiento': tipo[2],
+            'comida': tipo[3],
+            'agua': tipo[4],
+            'elec': tipo[5],
+            'dinero': tipo[6],
+            'capacidad': 20,
+            'felic': tipo[7],
+            'salud': 0,
+            'color': VERDE,
+            'es_inicial_gratis': False,
+        }
+
+    def _aplicar_efectos_investigacion(self, efecto):
+        if not efecto:
+            return
+        self.bonus_ingreso_pct += efecto.get("bonus_ingreso_pct", 0.0)
+        self.descuento_mantenimiento += efecto.get("descuento_mantenimiento", 0.0)
+        self.descuento_edificios += efecto.get("descuento_edificios", 0.0)
+        self.bonus_capacidad_comida_inv += int(efecto.get("bonus_capacidad_comida", 0))
+        self.bonus_capacidad_agua_inv += int(efecto.get("bonus_capacidad_agua", 0))
+        self.bonus_capacidad_energia_inv += int(efecto.get("bonus_capacidad_energia", 0))
+
+        self.normalizar_modificadores_economia()
+
+    def normalizar_modificadores_economia(self):
+        """Evita valores extremos: sin precios gratis ni mantenimiento negativo."""
+        self.bonus_ingreso_pct = max(0.0, min(3.0, float(self.bonus_ingreso_pct)))
+        self.descuento_mantenimiento = max(0.0, min(0.90, float(self.descuento_mantenimiento)))
+        self.descuento_edificios = max(0.0, min(0.90, float(self.descuento_edificios)))
+
+    def recalcular_bonos_investigacion(self):
+        self.bonus_capacidad_comida_inv = 0
+        self.bonus_capacidad_agua_inv = 0
+        self.bonus_capacidad_energia_inv = 0
+
+        for inv_id in self.investigaciones_completadas:
+            datos = self.datos_investigacion.get(inv_id, {})
+            efecto = datos.get("efecto", {})
+            self.bonus_capacidad_comida_inv += int(efecto.get("bonus_capacidad_comida", 0))
+            self.bonus_capacidad_agua_inv += int(efecto.get("bonus_capacidad_agua", 0))
+            self.bonus_capacidad_energia_inv += int(efecto.get("bonus_capacidad_energia", 0))
+
+    def recalcular_bonos_investigacion_completas(self):
+        self.bonus_ingreso_pct = 0.0
+        self.descuento_mantenimiento = 0.0
+        self.descuento_edificios = 0.0
+        self.reduccion_tiempo_investigacion = 0.0
+        self.bonus_capacidad_comida_inv = 0
+        self.bonus_capacidad_agua_inv = 0
+        self.bonus_capacidad_energia_inv = 0
+
+        for inv_id in self.investigaciones_completadas:
+            datos = self.datos_investigacion.get(inv_id, {})
+            self._aplicar_efectos_investigacion(datos.get("efecto", {}))
 
     def limite_negativo_recurso(self, recurso):
         """Retorna el límite negativo dinámico para un recurso dado."""
@@ -361,12 +535,23 @@ class LogicaCiudad:
         
         # Marcar como completada
         self.investigaciones_completadas.add(id_investigacion)
+        self.investigaciones_ano[id_investigacion] = self.ano  # registrar año para reinicio selectivo
         
         # Desbloquear edificios
         datos_inv = self.datos_investigacion[id_investigacion]
         for edificio in datos_inv.get("edificios_desbloquea", []):
             if edificio not in self.edificios_desbloqueados:
                 self.edificios_desbloqueados.append(edificio)
+
+        # Aplicar bonificaciones permanentes de la investigación
+        efecto = datos_inv.get("efecto", {})
+        self._aplicar_efectos_investigacion(efecto)
+        self.aplicar_limites_dinamicos()
+        self.ultimo_resumen_investigacion = self._formatear_efecto_investigacion(efecto)
+        desbloqueos = datos_inv.get("edificios_desbloquea", [])
+        if desbloqueos:
+            self.ultimo_resumen_investigacion.append(f"Desbloquea: {', '.join(desbloqueos)}")
+        self.ultimo_titulo_investigacion = datos_inv.get("titulo", "")
         
         # Noticia
         titulo = datos_inv["titulo"]
@@ -414,14 +599,47 @@ class LogicaCiudad:
         return disponibles
     
     def agregar_ciudadano(self):
-        """Añade un ciudadano al pool sin disparar la lógica anual completa."""
-        nuevo = Ciudadano()
-        self.poblacion.append(nuevo)
-        return nuevo
+        """Añade 1 adulto por defecto en formato agregado."""
+        return self.agregar_ciudadanos(1, "Adultos")
+
+    def agregar_ciudadanos(self, cantidad, rango="Adultos"):
+        cantidad = max(0, int(cantidad))
+        if cantidad == 0:
+            return 0
+        rangos = self.poblacion_stats["rangos_etarios"]
+        if rango not in rangos:
+            rango = "Adultos"
+        rangos[rango] += cantidad
+        self.poblacion_stats["poblacion_total"] = self.get_poblacion_total() + cantidad
+        self._recalcular_estado_social()
+        return cantidad
+
+    def reducir_poblacion(self, cantidad):
+        cantidad = max(0, int(cantidad))
+        total = self.get_poblacion_total()
+        if total <= 0 or cantidad <= 0:
+            return 0
+        quitar = min(cantidad, total)
+        rangos = self.poblacion_stats["rangos_etarios"]
+
+        quitar_anc = min(rangos["Ancianos"], quitar)
+        rangos["Ancianos"] -= quitar_anc
+        restante = quitar - quitar_anc
+
+        quitar_adu = min(rangos["Adultos"], restante)
+        rangos["Adultos"] -= quitar_adu
+        restante -= quitar_adu
+
+        quitar_nin = min(rangos["Niños"], restante)
+        rangos["Niños"] -= quitar_nin
+
+        self.poblacion_stats["poblacion_total"] = total - quitar
+        self._recalcular_estado_social()
+        return quitar
 
     def agregar_ciudadano_nacimiento(self):
         """Alias para usar al inicio del juego desde __init__."""
-        return self.agregar_ciudadano()
+        return self.agregar_ciudadanos(1, "Niños")
 
     # Nota: esta definicion inicial de avanzar_ano se elimino porque existe una segunda version activa mas abajo.
 
@@ -475,23 +693,8 @@ class LogicaCiudad:
             self.total_mantenimiento_anual += edf.mantenimiento
 
     def asignar_vivienda_y_empleo(self):
-        """Asigna vivienda respetando capacidades"""
-        for hab in self.poblacion:
-            if not hab.tiene_casa:
-                # Prioridad: Casas primero
-                for e in self.edificios:
-                    if e.nombre == "Casa" and e.hay_espacio_vivienda():
-                        e.habitantes.append(hab)
-                        hab.tiene_casa = True
-                        break
-                
-                # Si no hay Casa, intenta Bloque Pisos
-                if not hab.tiene_casa:
-                    for e in self.edificios:
-                        if e.nombre == "Bloque Pisos" and e.hay_espacio_vivienda():
-                            e.habitantes.append(hab)
-                            hab.tiene_casa = True
-                            break
+        """Calcula empleo y vivienda con estadísticas agregadas."""
+        self._recalcular_estado_social()
 
     def aplicar_efectos_edificios(self):
         """Aplica el impacto de edificios a felicidad y salud de la poblacion."""
@@ -504,19 +707,16 @@ class LogicaCiudad:
         promedio_felicidad = total_felicidad / max(1, len(edificios_no_casa))
         promedio_salud = total_salud / max(1, len(edificios_no_casa))
 
-        for hab in self.poblacion:
-            hab.felicidad += promedio_felicidad
-            hab.salud += promedio_salud
-            hab.felicidad = max(0, min(100, hab.felicidad))
-            hab.salud = max(0, min(100, hab.salud))
+        proms = self.poblacion_stats["promedios"]
+        proms["felicidad_media"] = max(0.0, min(100.0, proms.get("felicidad_media", 80.0) + promedio_felicidad))
+        proms["salud_media"] = max(0.0, min(100.0, proms.get("salud_media", 80.0) + promedio_salud))
 
     def actualizar_capacidad_max_poblacion(self):
         """Calcula la capacidad maxima de poblacion basada en viviendas"""
-        casas    = sum(1 for e in self.edificios if e.nombre == "Casa")
-        bloques  = sum(1 for e in self.edificios if e.nombre == "Bloque Pisos")
-        rascas   = sum(1 for e in self.edificios if e.nombre == "Rascacielos")
-        megaplex = sum(1 for e in self.edificios if e.nombre == "Megaplex Urbano")
-        self.capacidad_max_poblacion = (casas * 5) + (bloques * 20) + (rascas * 100) + (megaplex * 200)
+        self.capacidad_max_poblacion = sum(
+            getattr(e, "capacidad_max_vivienda", 0)
+            for e in self.edificios
+        )
 
     def gestionar_inmigracion(self):
         """Inmigración basada en % de recursos:
@@ -524,7 +724,7 @@ class LogicaCiudad:
         - ambos < 25%          → llega 1/10 del espacio libre
         - al menos uno ≥ 25%   → llega 1/5 del espacio libre
         """
-        pob_actual = len(self.poblacion)
+        pob_actual = self.get_poblacion_total()
         if pob_actual >= self.capacidad_max_poblacion:
             return
 
@@ -548,8 +748,7 @@ class LogicaCiudad:
         nuevos = max(1, int(espacio_disponible * fraccion))
         nuevos = min(nuevos, espacio_disponible)
 
-        for _ in range(nuevos):
-            self.agregar_ciudadano()
+        self.agregar_ciudadanos(nuevos, "Adultos")
         self.noticias.append({"txt": f"Nuevos colonos: +{nuevos}", "tipo": "AVISO"})
 
     def procesar_noticias(self, lista_notas):
@@ -561,7 +760,7 @@ class LogicaCiudad:
         self.noticias = self.noticias[:10]
 
     def verificar_rango_ciudad(self):
-        pob_actual = len(self.poblacion)
+        pob_actual = self.get_poblacion_total()
         for nivel in reversed(NIVELES_CIUDAD):
             if pob_actual >= nivel["pob_min"]:
                 if self.rango_actual != nivel["rango"]:
@@ -593,7 +792,9 @@ class LogicaCiudad:
                 return False
 
         # --- 5. COMPRA ---
-        if self.dinero >= tipo_data[1]:
+        # Aplicar descuento de construcción del árbol tecnológico de Economía
+        precio_efectivo = self.calcular_precio_efectivo_edificio(tipo_data)
+        if self.dinero >= precio_efectivo:
             data_final = {
                 'nombre': tipo_data[0],
                 'costo': tipo_data[1],
@@ -611,7 +812,7 @@ class LogicaCiudad:
             # Solo UNA VEZ esto:
             nuevo = Edificio(data_final, x, y)
             self.edificios.append(nuevo)
-            self.dinero -= tipo_data[1]
+            self.dinero -= precio_efectivo
             
             # Actualizamos los totales para que el HUD se entere del nuevo consumo
             self.actualizar_consumos_totales()
@@ -622,8 +823,11 @@ class LogicaCiudad:
             
             return {"exito": True, "razón": "compra_exitosa"}
         else:
-            dinero_faltante = tipo_data[1] - self.dinero
+            dinero_faltante = precio_efectivo - self.dinero
             return {"exito": False, "razón": "dinero_insuficiente", "faltante": dinero_faltante, "nombre": tipo_data[0]}
+
+    def calcular_precio_efectivo_edificio(self, tipo_data):
+        return max(0, int(tipo_data[1] * (1.0 - self.descuento_edificios)))
     
     def vender_edificios(self, nombre_edificio, cantidad):
         """Vende edificios del mismo tipo y devuelve el 50% del costo"""
@@ -662,7 +866,7 @@ class LogicaCiudad:
      
     def aplicar_limites_dinamicos(self):
         """Aplica limites: (Poblacion * Consumo * 20) + (Almacenes * 5000)"""
-        n_pob = len(self.poblacion)
+        n_pob = self.get_poblacion_total()
         
         # 1. Contar almacenes construidos (incluyendo silos y variantes)
         almacenes_comida = sum(1 for e in self.edificios if e.nombre in ["Almacen de Comida", "Silo Gigante"])
@@ -679,6 +883,11 @@ class LogicaCiudad:
         
         # Energía: (población * 6 * 20) + (N almacenes * 5000)
         self.max_energia = (n_pob * CONSUMO_ELEC_HAB * 20) + (almacenes_elec * 5000)
+
+        # Bonos permanentes obtenidos en investigaciones de laboratorio
+        self.max_comida += self.bonus_capacidad_comida_inv
+        self.max_agua += self.bonus_capacidad_agua_inv
+        self.max_energia += self.bonus_capacidad_energia_inv
 
         # 3. Solo aplicar el límite superior (máximo), sin límite negativo
         self.recursos["comida"] = min(self.recursos["comida"], self.max_comida)
@@ -742,24 +951,16 @@ class LogicaCiudad:
                 self.recursos[recurso] += valor
                 
             elif recurso == "felicidad":
-                # Como la felicidad es individual, se la aplicamos a todos
-                for hab in self.poblacion:
-                    hab.felicidad = max(0, min(100, hab.felicidad + valor))
+                self.poblacion_stats["promedios"]["felicidad_media"] = max(
+                    0.0,
+                    min(100.0, self.get_felicidad_media() + float(valor))
+                )
                     
             elif recurso == "habitantes":
                 if valor > 0:
-                    # Añadir nuevos ciudadanos (tendrías que llamar a tu lógica de crear habitante)
-                    for _ in range(valor):
-                        self.gestionar_inmigracion(forzar=True) 
+                    self.agregar_ciudadanos(int(valor), "Adultos")
                 elif valor < 0:
-                    # Quitar gente (trágico, pero necesario para el juego)
-                    for _ in range(abs(valor)):
-                        if self.poblacion:
-                            hab_muerto = self.poblacion.pop()
-                            # Limpiar sus puestos de trabajo/casa
-                            for e in self.edificios:
-                                if hab_muerto in e.habitantes: e.habitantes.remove(hab_muerto)
-                                if hab_muerto in e.trabajadores: e.trabajadores.remove(hab_muerto)
+                    self.reducir_poblacion(abs(int(valor)))
 
         # 2. Cerrar el popup después de aplicar
         self.mostrar_popup_evento = False
@@ -777,25 +978,16 @@ class LogicaCiudad:
             "dinero": self.dinero,
             "ano": self.ano,
             "recursos": self.recursos,
-            "poblacion": [
-                {
-                    "nombre": c.nombre, 
-                    "edad": c.edad, 
-                    "salud": c.salud, 
-                    "felicidad": c.felicidad,
-                    "tiene_casa": c.tiene_casa,
-                    "tiene_empleo": c.tiene_empleo,
-                    "rango_etario": c.rango_etario
-                }
-                for c in self.poblacion
-            ],
+            "poblacion": [],
+            "poblacion_stats": self.poblacion_stats,
             "edificios": [
                 {
                     "id_edificio": e.id_edificio,
                     "nombre": e.nombre, 
                     "x": e.x, 
                     "y": e.y,
-                    "capacidad_max_vivienda": e.capacidad_max_vivienda
+                    "capacidad_max_vivienda": e.capacidad_max_vivienda,
+                    "es_inicial_gratis": getattr(e, "es_inicial_gratis", False)
                 }
                 for e in self.edificios
             ],
@@ -808,6 +1000,18 @@ class LogicaCiudad:
             "cofres_abiertos": list(self.cofres_abiertos),
             "intercambios_realizados": self.intercambios_realizados,
             "estado_inicio_capitulo": self._serializar_estado(self.estado_inicio_capitulo),
+            # ── Árbol tecnológico de Economía ──────────────────────────────────
+            "niveles_arbol":           self.niveles_arbol,
+            "bonus_ingreso_pct":       self.bonus_ingreso_pct,
+            "descuento_mantenimiento": self.descuento_mantenimiento,
+            "descuento_edificios":     self.descuento_edificios,
+            "reduccion_tiempo_investigacion": self.reduccion_tiempo_investigacion,
+            "bonus_capacidad_comida_inv": self.bonus_capacidad_comida_inv,
+            "bonus_capacidad_agua_inv": self.bonus_capacidad_agua_inv,
+            "bonus_capacidad_energia_inv": self.bonus_capacidad_energia_inv,
+              "bonos_investigacion_version": 1,
+              "investigaciones_ano": dict(self.investigaciones_ano),
+              "arbol_subidas_ano": {k: list(v) for k, v in self.arbol_subidas_ano.items()},
         }
 
         ruta_partidas = self.juego.ruta_partida
@@ -853,25 +1057,16 @@ class LogicaCiudad:
             "dinero": self.dinero,
             "ano": self.ano,
             "recursos": self.recursos,
-            "poblacion": [
-                {
-                    "nombre": c.nombre, 
-                    "edad": c.edad, 
-                    "salud": c.salud, 
-                    "felicidad": c.felicidad,
-                    "tiene_casa": c.tiene_casa,
-                    "tiene_empleo": c.tiene_empleo,
-                    "rango_etario": c.rango_etario
-                }
-                for c in self.poblacion
-            ],
+            "poblacion": [],
+            "poblacion_stats": self.poblacion_stats,
             "edificios": [
                 {
                     "id_edificio": e.id_edificio,
                     "nombre": e.nombre, 
                     "x": e.x, 
                     "y": e.y,
-                    "capacidad_max_vivienda": e.capacidad_max_vivienda
+                    "capacidad_max_vivienda": e.capacidad_max_vivienda,
+                    "es_inicial_gratis": getattr(e, "es_inicial_gratis", False)
                 }
                 for e in self.edificios
             ],
@@ -884,6 +1079,15 @@ class LogicaCiudad:
             "cofres_abiertos": list(self.cofres_abiertos),
             "intercambios_realizados": self.intercambios_realizados,
             "estado_inicio_capitulo": self._serializar_estado(self.estado_inicio_capitulo),
+            # ── Árbol tecnológico de Economía ──────────────────────────────────
+            "niveles_arbol":           self.niveles_arbol,
+            "bonus_ingreso_pct":       self.bonus_ingreso_pct,
+            "descuento_mantenimiento": self.descuento_mantenimiento,
+            "descuento_edificios":     self.descuento_edificios,
+            "bonus_capacidad_comida_inv": self.bonus_capacidad_comida_inv,
+            "bonus_capacidad_agua_inv": self.bonus_capacidad_agua_inv,
+            "bonus_capacidad_energia_inv": self.bonus_capacidad_energia_inv,
+            "bonos_investigacion_version": 1,
         }
 
         # Guardar en archivo de partidas
@@ -943,6 +1147,19 @@ class LogicaCiudad:
             self.cofres_abiertos = set(partida_dict.get("cofres_abiertos", []))
             self.intercambios_realizados = partida_dict.get("intercambios_realizados", 0)
 
+            # ── Árbol tecnológico de Economía ──────────────────────────────────
+            self.niveles_arbol           = partida_dict.get("niveles_arbol", {})
+            self.bonus_ingreso_pct       = partida_dict.get("bonus_ingreso_pct", 0.0)
+            self.descuento_mantenimiento = partida_dict.get("descuento_mantenimiento", 0.0)
+            self.descuento_edificios     = partida_dict.get("descuento_edificios", 0.0)
+            self.reduccion_tiempo_investigacion = partida_dict.get("reduccion_tiempo_investigacion", 0.0)
+            self.bonus_capacidad_comida_inv = partida_dict.get("bonus_capacidad_comida_inv", 0)
+            self.bonus_capacidad_agua_inv = partida_dict.get("bonus_capacidad_agua_inv", 0)
+            self.bonus_capacidad_energia_inv = partida_dict.get("bonus_capacidad_energia_inv", 0)
+            self.investigaciones_ano = partida_dict.get("investigaciones_ano", {})
+            self.arbol_subidas_ano = {k: list(v) for k, v in partida_dict.get("arbol_subidas_ano", {}).items()}
+            bonos_inv_version = partida_dict.get("bonos_investigacion_version", 0)
+
             # Regenerar lista de misiones para el capítulo correcto
             self.generar_misiones_capitulo()
 
@@ -958,38 +1175,78 @@ class LogicaCiudad:
                     if edificio not in self.edificios_desbloqueados:
                         self.edificios_desbloqueados.append(edificio)
 
+            # Recalcular bonos de capacidad por si la partida guardada es antigua
+            if ("bonus_capacidad_comida_inv" not in partida_dict or
+                    "bonus_capacidad_agua_inv" not in partida_dict or
+                    "bonus_capacidad_energia_inv" not in partida_dict):
+                self.recalcular_bonos_investigacion()
+
+            # Migración para partidas viejas: aplicar una sola vez efectos de investigación
+            if bonos_inv_version < 1:
+                for inv_id in self.investigaciones_completadas:
+                    efecto = self.datos_investigacion.get(inv_id, {}).get("efecto", {})
+                    efecto_migracion = {
+                        "bonus_ingreso_pct": efecto.get("bonus_ingreso_pct", 0.0),
+                        "descuento_mantenimiento": efecto.get("descuento_mantenimiento", 0.0),
+                        "descuento_edificios": efecto.get("descuento_edificios", 0.0),
+                    }
+                    self._aplicar_efectos_investigacion(efecto_migracion)
+
             # --- Reconstruir edificios ---
             self.edificios = []
             for d in partida_dict.get("edificios", []):
-                tipo = next((e for e in EDIFICACIONES if e[0] == d["nombre"]), None)
-                if tipo:
-                    data_final = {
-                        'nombre': tipo[0], 'costo': tipo[1], 'mantenimiento': tipo[2],
-                        'comida': tipo[3], 'agua': tipo[4], 'elec': tipo[5],
-                        'dinero': tipo[6], 'capacidad': 20,  # ✓ CORRECCIÓN
-                        'felic': tipo[7], 'salud': 0, 'color': VERDE  # ✓ CORRECCIÓN
-                    }
+                es_inicial_gratis = self._es_edificio_inicial_guardado(d)
+                data_final = self._crear_data_edificio(d["nombre"], es_inicial_gratis)
+                if data_final:
                     nuevo = Edificio(data_final, d["x"], d["y"])
-                    # 🔧 RESTAURAR UUID y capacidad_max_vivienda
+                    # 🔧 RESTAURAR UUID
                     nuevo.id_edificio = d.get("id_edificio", nuevo.id_edificio)
-                    nuevo.capacidad_max_vivienda = d.get("capacidad_max_vivienda", nuevo.capacidad_max_vivienda)
                     self.edificios.append(nuevo)
 
-            # --- Reconstruir poblacion con TODAS las propiedades ---
-            self.poblacion = []
-            for c in partida_dict.get("poblacion", []):
-                ciudadano = Ciudadano()
-                ciudadano.nombre = c["nombre"]
-                ciudadano.edad = c["edad"]
-                ciudadano.salud = c["salud"]
-                ciudadano.felicidad = c["felicidad"]
-                # 🔧 RESTAURAR propiedades del ciudadano
-                ciudadano.tiene_casa = c.get("tiene_casa", False)
-                ciudadano.tiene_empleo = c.get("tiene_empleo", False)
-                ciudadano.rango_etario = c.get("rango_etario", "Niño")
-                self.poblacion.append(ciudadano)
+            # --- Migrar/Cargar población agregada ---
+            stats_guardadas = partida_dict.get("poblacion_stats", None)
+            if isinstance(stats_guardadas, dict):
+                self.poblacion_stats = stats_guardadas
+                self.normalizar_poblacion_stats()
+            else:
+                pob_lista = partida_dict.get("poblacion", [])
+                total = len(pob_lista)
+                ninos = 0
+                adultos = 0
+                ancianos = 0
+                con_casa = 0
+                empleados = 0
+                suma_salud = 0.0
+                suma_felicidad = 0.0
+                for c in pob_lista:
+                    edad = int(c.get("edad", 25))
+                    rango_txt = c.get("rango_etario", "Adulto")
+                    if rango_txt in ("Niño", "Niños") or edad < 18:
+                        ninos += 1
+                    elif rango_txt == "Anciano" or edad >= 65:
+                        ancianos += 1
+                    else:
+                        adultos += 1
+                    if c.get("tiene_casa", False):
+                        con_casa += 1
+                    if c.get("tiene_empleo", False):
+                        empleados += 1
+                    suma_salud += float(c.get("salud", 80))
+                    suma_felicidad += float(c.get("felicidad", 80))
 
-            # 🔧 RECALCULAR límites después de cargar TODO
+                salud_media = (suma_salud / total) if total else 80.0
+                felicidad_media = (suma_felicidad / total) if total else 80.0
+                self.poblacion_stats = {
+                    "poblacion_total": total,
+                    "rangos_etarios": {"Niños": ninos, "Adultos": adultos, "Ancianos": ancianos},
+                    "empleo": {"empleados": empleados, "desempleados": max(0, total - empleados)},
+                    "vivienda": {"con_casa": con_casa, "sin_casa": max(0, total - con_casa)},
+                    "promedios": {"salud_media": salud_media, "felicidad_media": felicidad_media},
+                }
+                self.normalizar_poblacion_stats()
+
+            # 🔧 RECALCULAR capacidad de población y límites después de cargar TODO
+            self.actualizar_capacidad_max_poblacion()
             self.aplicar_limites_dinamicos()
 
             return True
@@ -999,16 +1256,16 @@ class LogicaCiudad:
             return False
         
     def avanzar_ano(self):
-        if len(self.poblacion) <= 0:
+        if self.get_poblacion_total() <= 0:
             self.game_over = True
         
         self.ano += 1
-        pob_inicial = len(self.poblacion) 
+        pob_inicial = self.get_poblacion_total()
         self.noticias = []
 
         self.actualizar_consumos_totales()
 
-        n_pob = len(self.poblacion)
+        n_pob = self.get_poblacion_total()
 
         # 10% de probabilidad anual de que se active un evento aleatorio
         if random.random() < 0.10:
@@ -1023,10 +1280,17 @@ class LogicaCiudad:
 
         dinero_por_persona = INGRESO_BASE_HAB * (IMPUESTO_INICIAL / 100)
         impuestos_totales = n_pob * dinero_por_persona
-        
+
+        # Aplicar bonificación de impuestos del árbol tecnológico
+        impuestos_totales = impuestos_totales * (1.0 + self.bonus_ingreso_pct)
+
         ingresos_edif = sum(getattr(e, 'produccion_dinero', 0) for e in self.edificios)
-        
-        balance_anual = (impuestos_totales + ingresos_edif) - self.total_mantenimiento_anual
+
+        # Aplicar descuento de mantenimiento del árbol tecnológico
+        mantenimiento_efectivo = self.total_mantenimiento_anual * (
+            1.0 - self.descuento_mantenimiento)
+
+        balance_anual = (impuestos_totales + ingresos_edif) - mantenimiento_efectivo
         self.dinero += balance_anual
 
         if self.dinero < 0:
@@ -1052,9 +1316,9 @@ class LogicaCiudad:
         self.asignar_vivienda_y_empleo()
         
         # 🔥 CONSUMO GLOBAL CON LÍMITE
-        consumo_comida = len(self.poblacion) * CONSUMO_COMIDA_HAB
-        consumo_agua = len(self.poblacion) * CONSUMO_AGUA_HAB
-        consumo_electricidad = len(self.poblacion) * CONSUMO_ELEC_HAB
+        consumo_comida = n_pob * CONSUMO_COMIDA_HAB
+        consumo_agua = n_pob * CONSUMO_AGUA_HAB
+        consumo_electricidad = n_pob * CONSUMO_ELEC_HAB
 
         # Restar consumo global de recursos
         self.recursos["comida"] -= consumo_comida
@@ -1066,29 +1330,65 @@ class LogicaCiudad:
         # Sin límite negativo: los recursos pueden caer sin tope
 
         noticias_sucias = []
-        for hab in self.poblacion[:]:
-            notas = hab.actualizar_necesidades(self.recursos)
-            noticias_sucias.extend(notas)
+        proms = self.poblacion_stats["promedios"]
+        if self.recursos["comida"] < 0:
+            proms["salud_media"] -= float(DANO_HAMBRE)
+            noticias_sucias.append({"txt": "Hambre generalizada", "tipo": "CRITICO"})
+        if self.recursos["agua"] < 0:
+            proms["salud_media"] -= float(DANO_SED)
 
-            hab.salud = max(0, min(100, hab.salud))
-            hab.felicidad = max(0, min(100, hab.felicidad))
-
-            if not hab.esta_vivo or hab.salud <= 0 or hab.edad >= EDAD_MAXIMA:
-                for e in self.edificios:
-                    if hab in e.habitantes: e.habitantes.remove(hab)
-                    if hab in e.trabajadores: e.trabajadores.remove(hab)
-                if hab in self.poblacion: self.poblacion.remove(hab)
+        sin_casa = self.poblacion_stats.get("vivienda", {}).get("sin_casa", 0)
+        if n_pob > 0 and sin_casa > 0:
+            fraccion = sin_casa / n_pob
+            proms["felicidad_media"] -= float(DANO_SIN_TECHO_FELIC) * fraccion
+            proms["salud_media"] -= 1.0 * fraccion
 
         # Aplicar balance unificado de felicidad/salud (igual que el panel de análisis)
         delta_felic, delta_salud = self.calcular_balance_anual_felic_salud()
-        for hab in self.poblacion:
-            hab.felicidad = max(0, min(100, hab.felicidad + delta_felic))
-            hab.salud = max(0, min(100, hab.salud + delta_salud))
+        proms["felicidad_media"] = max(0.0, min(100.0, proms.get("felicidad_media", 80.0) + delta_felic))
+        proms["salud_media"] = max(0.0, min(100.0, proms.get("salud_media", 80.0) + delta_salud))
 
-        pob_final = len(self.poblacion)
+        # Envejecimiento por grupos
+        rangos = self.poblacion_stats["rangos_etarios"]
+        paso_ninos_adultos = int(rangos["Niños"] * 0.06)
+        paso_adultos_ancianos = int(rangos["Adultos"] * 0.025)
+        rangos["Niños"] = max(0, rangos["Niños"] - paso_ninos_adultos)
+        rangos["Adultos"] = max(0, rangos["Adultos"] + paso_ninos_adultos - paso_adultos_ancianos)
+        rangos["Ancianos"] = max(0, rangos["Ancianos"] + paso_adultos_ancianos)
+
+        # Mortalidad anual por grupos (ancianos con mayor riesgo)
+        total_actual = self.get_poblacion_total()
+        base_mortalidad = random.uniform(0.01, 0.03)
+        ancianos = rangos["Ancianos"]
+        otros = max(0, total_actual - ancianos)
+        muertes_anc = min(ancianos, int(ancianos * min(0.35, base_mortalidad * 2.2)))
+        muertes_otros = min(otros, int(otros * base_mortalidad))
+
+        adultos = rangos["Adultos"]
+        ninos = rangos["Niños"]
+        base_otros = max(1, adultos + ninos)
+        muertes_adultos = min(adultos, int(muertes_otros * (adultos / base_otros)))
+        muertes_ninos = min(ninos, muertes_otros - muertes_adultos)
+
+        rangos["Ancianos"] = max(0, rangos["Ancianos"] - muertes_anc)
+        rangos["Adultos"] = max(0, rangos["Adultos"] - muertes_adultos)
+        rangos["Niños"] = max(0, rangos["Niños"] - muertes_ninos)
+
+        # Nacimientos basados en felicidad media
+        total_post_mortalidad = rangos["Niños"] + rangos["Adultos"] + rangos["Ancianos"]
+        tasa_natalidad = 0.005 + (self.get_felicidad_media() / 100.0) * 0.02
+        nacimientos = max(0, int(total_post_mortalidad * tasa_natalidad))
+        rangos["Niños"] += nacimientos
+
+        self.poblacion_stats["poblacion_total"] = rangos["Niños"] + rangos["Adultos"] + rangos["Ancianos"]
+        self.normalizar_poblacion_stats()
+
+        pob_final = self.get_poblacion_total()
         muertos = pob_inicial - pob_final
         if muertos > 0:
             self.noticias.append({"txt": f"Han fallecido {muertos} ciudadanos", "tipo": "MUERTE"})
+        if nacimientos > 0:
+            self.noticias.append({"txt": f"Nacimientos: +{nacimientos}", "tipo": "AVISO"})
 
         self.procesar_noticias(noticias_sucias)
         self.gestionar_inmigracion()
@@ -1120,6 +1420,7 @@ class LogicaCiudad:
         s = estado.copy()
         s["investigaciones_completadas"] = list(s.get("investigaciones_completadas", set()))
         s["misiones_completadas"] = list(s.get("misiones_completadas", set()))
+        s["cofres_abiertos"] = list(s.get("cofres_abiertos", set()))
         return s
 
     def _deserializar_estado(self, datos):
@@ -1129,6 +1430,7 @@ class LogicaCiudad:
         e = datos.copy()
         e["investigaciones_completadas"] = set(e.get("investigaciones_completadas", []))
         e["misiones_completadas"] = set(e.get("misiones_completadas", []))
+        e["cofres_abiertos"] = set(e.get("cofres_abiertos", []))
         return e
 
     def guardar_estado_completo(self):
@@ -1137,25 +1439,16 @@ class LogicaCiudad:
             "dinero": self.dinero,
             "ano": self.ano,
             "recursos": self.recursos.copy(),
-            "poblacion": [
-                {
-                    "nombre": c.nombre, 
-                    "edad": c.edad, 
-                    "salud": c.salud, 
-                    "felicidad": c.felicidad,
-                    "tiene_casa": c.tiene_casa,
-                    "tiene_empleo": c.tiene_empleo,
-                    "rango_etario": c.rango_etario
-                }
-                for c in self.poblacion
-            ],
+            "poblacion": [],
+            "poblacion_stats": self.poblacion_stats,
             "edificios": [
                 {
                     "id_edificio": e.id_edificio,
                     "nombre": e.nombre, 
                     "x": e.x, 
                     "y": e.y,
-                    "capacidad_max_vivienda": e.capacidad_max_vivienda
+                    "capacidad_max_vivienda": e.capacidad_max_vivienda,
+                    "es_inicial_gratis": getattr(e, "es_inicial_gratis", False)
                 }
                 for e in self.edificios
             ],
@@ -1164,7 +1457,18 @@ class LogicaCiudad:
             "nivel_tecnologico": self.nivel_tecnologico,
             "investigaciones_completadas": self.investigaciones_completadas.copy(),
             "capitulo_actual": self.capitulo_actual,
-            "misiones_completadas": self.misiones_completadas.copy()
+            "misiones_completadas": self.misiones_completadas.copy(),
+            "cofres_abiertos": self.cofres_abiertos.copy(),
+            "niveles_arbol": dict(self.niveles_arbol),
+            "bonus_ingreso_pct": self.bonus_ingreso_pct,
+            "descuento_mantenimiento": self.descuento_mantenimiento,
+            "descuento_edificios": self.descuento_edificios,
+            "reduccion_tiempo_investigacion": self.reduccion_tiempo_investigacion,
+            "bonus_capacidad_comida_inv": self.bonus_capacidad_comida_inv,
+            "bonus_capacidad_agua_inv": self.bonus_capacidad_agua_inv,
+            "bonus_capacidad_energia_inv": self.bonus_capacidad_energia_inv,
+            "investigaciones_ano": dict(self.investigaciones_ano),
+            "arbol_subidas_ano": {k: list(v) for k, v in self.arbol_subidas_ano.items()},
         }
 
     def cargar_estado_completo(self, estado):
@@ -1172,46 +1476,52 @@ class LogicaCiudad:
         self.dinero = estado["dinero"]
         self.ano = estado["ano"]
         self.recursos = estado["recursos"]
-        self.poblacion = []
-        for c in estado["poblacion"]:
-            ciudadano = Ciudadano()
-            ciudadano.nombre = c["nombre"]
-            ciudadano.edad = c["edad"]
-            ciudadano.salud = c["salud"]
-            ciudadano.felicidad = c["felicidad"]
-            ciudadano.tiene_casa = c.get("tiene_casa", False)
-            ciudadano.tiene_empleo = c.get("tiene_empleo", False)
-            ciudadano.rango_etario = c.get("rango_etario", "Niño")
-            self.poblacion.append(ciudadano)
+        self.poblacion_stats = estado.get("poblacion_stats", self._crear_poblacion_stats_vacia())
+        self.normalizar_poblacion_stats()
         
         self.edificios = []
         for d in estado["edificios"]:
-            tipo = next((e for e in EDIFICACIONES if e[0] == d["nombre"]), None)
-            if tipo:
-                data_final = {
-                    'nombre': tipo[0], 'costo': tipo[1], 'mantenimiento': tipo[2],
-                    'comida': tipo[3], 'agua': tipo[4], 'elec': tipo[5],
-                    'dinero': tipo[6], 'capacidad': 20,
-                    'felic': tipo[7], 'salud': 0, 'color': VERDE
-                }
+            es_inicial_gratis = self._es_edificio_inicial_guardado(d)
+            data_final = self._crear_data_edificio(d["nombre"], es_inicial_gratis)
+            if data_final:
                 nuevo = Edificio(data_final, d["x"], d["y"])
                 nuevo.id_edificio = d.get("id_edificio", nuevo.id_edificio)
-                nuevo.capacidad_max_vivienda = d.get("capacidad_max_vivienda", nuevo.capacidad_max_vivienda)
                 self.edificios.append(nuevo)
         
-        self.capacidad_max_poblacion = estado["capacidad_max_poblacion"]
+        self.actualizar_capacidad_max_poblacion()
         self.poblacion_inicial = estado["poblacion_inicial"]
         self.nivel_tecnologico = estado["nivel_tecnologico"]
         self.investigaciones_completadas = set(estado["investigaciones_completadas"])
         self.capitulo_actual = estado["capitulo_actual"]
         self.misiones_completadas = set(estado["misiones_completadas"])
+        self.cofres_abiertos = set(estado.get("cofres_abiertos", set()))
+        self.niveles_arbol = dict(estado.get("niveles_arbol", {}))
+        self.bonus_ingreso_pct = estado.get("bonus_ingreso_pct", 0.0)
+        self.descuento_mantenimiento = estado.get("descuento_mantenimiento", 0.0)
+        self.descuento_edificios = estado.get("descuento_edificios", 0.0)
+        self.reduccion_tiempo_investigacion = estado.get("reduccion_tiempo_investigacion", 0.0)
+        self.bonus_capacidad_comida_inv = estado.get("bonus_capacidad_comida_inv", 0)
+        self.bonus_capacidad_agua_inv = estado.get("bonus_capacidad_agua_inv", 0)
+        self.bonus_capacidad_energia_inv = estado.get("bonus_capacidad_energia_inv", 0)
+        self.investigaciones_ano = dict(estado.get("investigaciones_ano", {}))
+        self.arbol_subidas_ano = {k: list(v) for k, v in estado.get("arbol_subidas_ano", {}).items()}
+
+        self.edificios_desbloqueados = [
+            "Casa", "Granja", "Planta Agua", "Central Elec.",
+            "Almacen de Comida", "Almacen de Agua", "Almacen de Energia"
+        ]
+        for inv_id in self.investigaciones_completadas:
+            datos_inv = self.datos_investigacion.get(inv_id, {})
+            for edificio in datos_inv.get("edificios_desbloquea", []):
+                if edificio not in self.edificios_desbloqueados:
+                    self.edificios_desbloqueados.append(edificio)
         
         self.aplicar_limites_dinamicos()
 
     def calcular_balance_anual_felic_salud(self):
         """Calcula el delta anual de felicidad y salud igual que el panel de análisis.
         Excluye sin_casa, hambre y sed porque ya los aplica actualizar_necesidades."""
-        n_pob = len(self.poblacion)
+        n_pob = self.get_poblacion_total()
         if n_pob == 0:
             return 0.0, 0.0
 
@@ -1268,7 +1578,7 @@ class LogicaCiudad:
             delta_salud -= 1.0
 
         # Ciudad infeliz
-        avg_felic = sum(h.felicidad for h in self.poblacion) / n_pob
+        avg_felic = self.get_felicidad_media()
         if avg_felic < 20:
             delta_salud -= 3.0
 
@@ -1278,17 +1588,68 @@ class LogicaCiudad:
         if self.capitulo_actual == 1:
             # Reinicio total para capítulo 1
             self.__init__(self.juego, self.nombre_partida_actual)
+            return
+
+        capitulo_start_ano = (self.capitulo_actual - 1) * 100
+
+        # ── Guardar tracking de años ANTES de restaurar el snapshot ──────────
+        # (cargar_estado_completo puede sobreescribirlos con datos de la snapshot)
+        inv_ano_actual     = dict(self.investigaciones_ano)
+        arbol_ano_actual   = {k: list(v) for k, v in self.arbol_subidas_ano.items()}
+        hay_tracking       = bool(inv_ano_actual or arbol_ano_actual)
+
+        # ── Restaurar estado ciudad (dinero, año, recursos, población, edificios) ──
+        if self.estado_inicio_capitulo:
+            self.cargar_estado_completo(self.estado_inicio_capitulo)
         else:
-            # Reinicio al estado de inicio del capítulo
-            if self.estado_inicio_capitulo:
-                self.cargar_estado_completo(self.estado_inicio_capitulo)
-            else:
-                # Sin estado guardado (partida cargada del disco): solo resetear
-                # misiones y cofres, y volver al primer año del capítulo
-                self.ano = (self.capitulo_actual - 1) * 100
-                self.misiones_completadas = set()
-                self.cofres_abiertos = set()
-                self.noticias.append({"txt": "Capítulo reiniciado.", "tipo": "INFO"})
-                return
+            self.ano = capitulo_start_ano
+
+        # ── Restauración quirúrgica del estado tecnológico ────────────────────
+        if hay_tracking:
+            # Laboratorio: mantener solo investigaciones de capítulos anteriores
+            self.investigaciones_completadas = {
+                inv_id for inv_id, ano in inv_ano_actual.items()
+                if ano < capitulo_start_ano
+            }
+            self.investigaciones_ano = {
+                inv_id: ano for inv_id, ano in inv_ano_actual.items()
+                if ano < capitulo_start_ano
+            }
+
+            # Árbol: recalcular niveles contando solo subidas previas al capítulo
+            self.arbol_subidas_ano = {}
+            self.niveles_arbol = {}
+            for key, anios in arbol_ano_actual.items():
+                previos = [a for a in anios if a < capitulo_start_ano]
+                if previos:
+                    self.arbol_subidas_ano[key] = previos
+                    cat, _, nid = key.partition("::")
+                    self.niveles_arbol.setdefault(cat, {})[nid] = len(previos)
+
+            # Reconstruir edificios_desbloqueados
+            self.edificios_desbloqueados = [
+                "Casa", "Granja", "Planta Agua", "Central Elec.",
+                "Almacen de Comida", "Almacen de Agua", "Almacen de Energia"
+            ]
+            for inv_id in self.investigaciones_completadas:
+                datos_inv = self.datos_investigacion.get(inv_id, {})
+                for edif in datos_inv.get("edificios_desbloquea", []):
+                    if edif not in self.edificios_desbloqueados:
+                        self.edificios_desbloqueados.append(edif)
+
+            # Recalcular nivel_tecnologico
+            nivel = 1
+            for nlvl, reqs in [
+                (2, ["comida_2", "agua_2", "energia_2", "alojamiento_2"]),
+                (3, ["comida_3", "agua_3", "energia_3", "alojamiento_3"]),
+                (4, ["comida_4", "agua_4", "energia_4", "alojamiento_4"]),
+            ]:
+                if all(inv in self.investigaciones_completadas for inv in reqs):
+                    nivel = nlvl
+            self.nivel_tecnologico = nivel
+        # Si no hay tracking (partida antigua): cargar_estado_completo ya restauró
+        # el estado tech desde el snapshot, que es la mejor aproximación posible.
+
         self.misiones_completadas = set()
+        self.cofres_abiertos = set()
         self.noticias.append({"txt": "Capítulo reiniciado.", "tipo": "INFO"})

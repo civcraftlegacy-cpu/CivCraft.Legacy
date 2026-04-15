@@ -12,7 +12,9 @@ from configuracion import fmt_num
 from logica_ciudad import LogicaCiudad
 from login import LoginScreen
 from menu_partidas import MenuPartidas
-from investigacion import EscenaInvestigacion
+from investigacion import EscenaInvestigacion, EscenaArbol, GestorArboles
+from sistema_combate import EscenaCombate
+from arbol_tecnologico import CATEGORIAS
 import configuracion
 pygame.mixer.init()
 
@@ -24,7 +26,7 @@ class Juego:
         
         # Esto evita que salga el menú del navegador al pulsar click derecho
         if os.getenv('WASM'):  # Solo se ejecuta si está en la web
-            from platform import window
+            from platform import window  # type: ignore
             window.document.oncontextmenu = lambda e: False
         
         self.reloj = pygame.time.Clock()
@@ -120,6 +122,20 @@ class Juego:
         self.img_ajustes = pygame.image.load(os.path.join(BASE_DIR, "assets", "imagenes", "mantenimiento.png")).convert_alpha()
         self.img_ajustes = pygame.transform.scale(self.img_ajustes, (35, 35))
 
+        ruta_intercambio = os.path.join(BASE_DIR, "assets", "imagenes", "intercambio.png")
+        if os.path.exists(ruta_intercambio):
+            self.img_intercambio_btn = pygame.image.load(ruta_intercambio).convert_alpha()
+            self.img_intercambio_btn = pygame.transform.scale(self.img_intercambio_btn, (35, 35))
+        else:
+            self.img_intercambio_btn = None
+
+        ruta_ataque = os.path.join(BASE_DIR, "assets", "imagenes", "ataque.png")
+        if os.path.exists(ruta_ataque):
+            self.img_ataque_btn = pygame.image.load(ruta_ataque).convert_alpha()
+            self.img_ataque_btn = pygame.transform.scale(self.img_ataque_btn, (35, 35))
+        else:
+            self.img_ataque_btn = None
+
         # Cargar y escalar el icono (suponiendo que los otros miden 30x30 o 40x40)
         self.icon_investigacion = pygame.image.load(os.path.join(BASE_DIR, "assets", "imagenes", "investigacion.png")).convert_alpha()
         self.icon_investigacion = pygame.transform.scale(self.icon_investigacion, (35, 35))
@@ -171,11 +187,7 @@ class Juego:
         self.investigaciones_completadas = set(self.logica.investigaciones_completadas)
         
         # Inicializar conteos de edificios
-        self.edificios_construidos = {ed[0]: 0 for ed in EDIFICACIONES}
-        # Sincronizar con edificios cargados desde la partida
-        for edificio in self.logica.edificios:
-            if edificio.nombre in self.edificios_construidos:
-                self.edificios_construidos[edificio.nombre] += 1
+        self.reconstruir_contador_edificios()
         
         self.mostrando_investigacion = False  # Controla si el menú está abierto
         self.investigacion_seleccionada = None  # Almacena el ID (ej: "comida_2") para el popup
@@ -217,7 +229,7 @@ class Juego:
         self.scroll_inv_y = 0 
         self.cantidad_a_comprar = 1 
         self.confirmacion_pendiente = None
-        self.investigaciones_completadas = set()
+        self.investigaciones_completadas = set(self.logica.investigaciones_completadas)
         self.mostrando_detalle_estado = False
         self.detalle_estado_tipo = None
         self.rect_detalle_popup = None
@@ -230,6 +242,8 @@ class Juego:
         self.mostrando_selector_recurso_cofre = False
         self.mostrando_felicidades_capitulo1 = False
         self.boton_next_habilitado = True
+        self.popup_inv_completada_data = None
+        self.popup_inv_completada_frames = 0
 
         # --- TRACKING DE CLASIFICACIÓN ---
         self.rango_anterior = None
@@ -241,6 +255,14 @@ class Juego:
         self.estado_actual = 'CIUDAD'
         self.ciudad_surface = None   # captura el último frame de la ciudad
         self.menu_inv = EscenaInvestigacion()
+        self.escena_combate = EscenaCombate(self.logica)
+
+        # ── Gestor del árbol tecnológico (niveles por categoría) ──────────────
+        self.gestor_arbol  = GestorArboles(CATEGORIAS)
+        self.escena_arbol  = None     # instancia activa de EscenaArbol
+        # Sincronizar gestor con datos cargados de la partida
+        self.gestor_arbol.from_dict(self.logica.niveles_arbol)
+        self.gestor_arbol.recalcular_efectos(self.logica)
 
         # Llamamos a la actualización de la ubicación de los botones
         self.actualizar_posiciones_ui()
@@ -320,6 +342,16 @@ class Juego:
                 return (c, f)
         return None
 
+    def reconstruir_contador_edificios(self):
+        self.edificios_construidos = {ed[0]: 0 for ed in EDIFICACIONES}
+        for edificio in self.logica.edificios:
+            if getattr(edificio, "es_inicial_gratis", False):
+                continue
+            if edificio.x < 0 or edificio.y < 0:
+                continue
+            if edificio.nombre in self.edificios_construidos:
+                self.edificios_construidos[edificio.nombre] += 1
+
     def dibujar_sub_stats(self, x, balance):
         if balance is None or balance == 0: return 
         
@@ -340,14 +372,13 @@ class Juego:
         self.pantalla.blit(img_texto, (x + 35, 48))
 
     def calcular_detalles_estado(self, tipo):
-        poblacion = self.logica.poblacion
-        n_pob = len(poblacion)
+        n_pob = self.logica.get_poblacion_total()
         edificios = self.logica.edificios
 
         consumo_electricidad = n_pob * CONSUMO_ELEC_HAB
         energia_disponible = max(0, self.logica.recursos.get('electricidad', 0) + consumo_electricidad)
         sin_luz = max(0, n_pob - (energia_disponible // CONSUMO_ELEC_HAB))
-        sin_casa = sum(1 for hab in poblacion if not hab.tiene_casa)
+        sin_casa = self.logica.poblacion_stats.get("vivienda", {}).get("sin_casa", 0)
         detalles = []
         total = 0.0
 
@@ -369,8 +400,10 @@ class Juego:
 
         dinero_por_persona = INGRESO_BASE_HAB * (IMPUESTO_INICIAL / 100)
         impuestos_totales = n_pob * dinero_por_persona
+        impuestos_totales *= (1.0 + self.logica.bonus_ingreso_pct)
         ingresos_edif = sum(getattr(e, 'produccion_dinero', 0) for e in edificios)
         mantenimiento_total = sum(getattr(e, 'mantenimiento', 0) for e in edificios)
+        mantenimiento_total *= (1.0 - self.logica.descuento_mantenimiento)
         bal_dinero = (impuestos_totales + ingresos_edif) - mantenimiento_total
 
         if tipo == "felicidad":
@@ -454,7 +487,7 @@ class Juego:
                 detalles.append(("Balance anual de dinero", -1.0))
                 total += -1.0
 
-            promedio_felicidad = promedio(sum(h.felicidad for h in poblacion))
+            promedio_felicidad = self.logica.get_felicidad_media()
             if promedio_felicidad < 20 and n_pob > 0:
                 detalles.append(("Ciudad infeliz", -3.0))
                 total += -3.0
@@ -515,7 +548,14 @@ class Juego:
                     partidas = json.load(f)
                 
                 # Filtrar partidas con poblacion > 0
-                partidas_validas = [p for p in partidas if len(p.get("poblacion", [])) > 0]
+                partidas_validas = []
+                for p in partidas:
+                    if isinstance(p.get("poblacion_stats"), dict):
+                        pob = int(p.get("poblacion_stats", {}).get("poblacion_total", 0))
+                    else:
+                        pob = len(p.get("poblacion", []))
+                    if pob > 0:
+                        partidas_validas.append(p)
                 
                 if len(partidas_validas) < len(partidas):
                     with open(self.ruta_partida, "w", encoding="utf-8") as f:
@@ -595,7 +635,10 @@ class Juego:
         # Botones principales
         self.btn_next = pygame.Rect(20, self.alto - 80, 200, 60)
         self.btn_tienda = pygame.Rect(230, self.alto - 80, 150, 60)
-        self.btn_intercambio = pygame.Rect(390, self.alto - 80, 150, 60)
+        self.btn_combate = pygame.Rect(0, 0, 60, 60)
+        self.btn_combate.center = (self.ancho - 550, self.alto - 50)
+        self.btn_intercambio = pygame.Rect(0, 0, 60, 60)
+        self.btn_intercambio.center = (self.ancho - 470, self.alto - 50)
         
         # Botones HUD (esquina inferior derecha)
         altura_botones = self.alto - 50
@@ -621,10 +664,9 @@ class Juego:
     def dibujar_hud(self):
         # 1. Fondo y básicos
         pygame.draw.rect(self.pantalla, (30, 30, 30), (0, 0, self.ancho, MARGEN_HUD_SUP))
-        pob = self.logica.poblacion
-        n_pob = len(pob)
-        fel = sum(h.felicidad for h in pob)//n_pob if n_pob else 100
-        sal = sum(h.salud for h in pob)//n_pob if n_pob else 100
+        n_pob = self.logica.get_poblacion_total()
+        fel = int(self.logica.get_felicidad_media()) if n_pob else 100
+        sal = int(self.logica.get_salud_media()) if n_pob else 100
         
         # --- CALCULO DE PROYECCION PARA EL SIGUIENTE ANO ---
         # Esto calcula cuánto va a cambiar el recurso al final del turno
@@ -647,10 +689,12 @@ class Juego:
         cons_agua += (n_pob * CONSUMO_AGUA_HAB)
         bal_agua = prod_agua - cons_agua
 
-        # 4. Dinero: Impuestos + ingresos extra de edificios - mantenimiento
+        # 4. Dinero: Impuestos (con bonus) + ingresos de edificios - mantenimiento (con descuento)
         impuestos_reales = n_pob * (INGRESO_BASE_HAB * (IMPUESTO_INICIAL / 100))
+        impuestos_reales *= (1.0 + self.logica.bonus_ingreso_pct)
         ingresos_extra = sum(getattr(e, 'produccion_dinero', 0) for e in self.logica.edificios)
         mantenimiento_total = sum(getattr(e, 'mantenimiento', 0) for e in self.logica.edificios)
+        mantenimiento_total *= (1.0 - self.logica.descuento_mantenimiento)
         bal_dinero = (impuestos_reales + ingresos_extra) - mantenimiento_total
 
         # --- PREPARAR LISTA DE STATS ---
@@ -731,11 +775,6 @@ class Juego:
         pygame.draw.rect(self.pantalla, (0, 180, 0), self.btn_tienda, border_radius=15)
         txt_tie = self.fuente_m.render("TIENDA", True, BLANCO)
         self.pantalla.blit(txt_tie, (self.btn_tienda.centerx - txt_tie.get_width()//2, self.btn_tienda.centery - txt_tie.get_height()//2))
-
-        # --- BOTÓN INTERCAMBIO ---
-        pygame.draw.rect(self.pantalla, (100, 100, 200), self.btn_intercambio, border_radius=15)
-        txt_int = self.fuente_m.render("INTERCAMBIO", True, BLANCO)
-        self.pantalla.blit(txt_int, (self.btn_intercambio.centerx - txt_int.get_width()//2, self.btn_intercambio.centery - txt_int.get_height()//2))
 
         self.dibujar_botones_circulares()
 
@@ -876,7 +915,9 @@ class Juego:
                     area.blit(self.fuente_p.render(nombre_edificio, True, BLANCO), (COL_X["nombre"] - 20, y + 12))
                     
                     # Datos numéricos (usando la función blit_c definida arriba)
-                    blit_c(ed[1], "costo", ORO, y)
+                    precio_efectivo = self.logica.calcular_precio_efectivo_edificio(ed)
+                    color_coste = VERDE_BRILLANTE if precio_efectivo < ed[1] else ORO
+                    blit_c(precio_efectivo, "costo", color_coste, y)
                     blit_c(ed[2], "mant", (255, 120, 120), y)
                     blit_c(ed[3], "comida", VERDE_BRILLANTE if ed[3] >= 0 else ROJO, y)
                     blit_c(ed[4], "agua", CIAN if ed[4] >= 0 else ROJO, y)
@@ -947,6 +988,8 @@ class Juego:
         pygame.draw.rect(self.pantalla, ORO, cuadro, 3, border_radius=20)
 
         # 3. TITULO (Mas grande y con mas aire)
+        if self.confirmacion_pendiente is None:
+            return
         nombre_edf = self.confirmacion_pendiente[0]
         txt_tit = self.fuente_g.render(f"¿Comprar {nombre_edf}?", True, BLANCO)
         self.pantalla.blit(txt_tit, (cuadro.centerx - txt_tit.get_width()//2, cuadro.y + 20))
@@ -958,14 +1001,23 @@ class Juego:
 
         # 5. LISTA DE RECURSOS (Ahora usamos fuente_m por el aumento de tamaño)
         c = self.cantidad_a_comprar
+        precio_unitario = self.logica.calcular_precio_efectivo_edificio(self.confirmacion_pendiente)
         info_recursos = [
-            ("dinero",    f"-{fmt_num(self.confirmacion_pendiente[1] * c)}", (255, 100, 100)),
+            ("dinero",    f"-{fmt_num(precio_unitario * c)}", (255, 100, 100)),
             ("comida",    f"{fmt_num(self.confirmacion_pendiente[3] * c)}", (150, 255, 150) if self.confirmacion_pendiente[3] >= 0 else (255, 150, 150)),
             ("agua",      f"{fmt_num(self.confirmacion_pendiente[4] * c)}", (150, 150, 255)),
             ("energia",   f"{fmt_num(self.confirmacion_pendiente[5] * c)}", (255, 255, 150)),
             ("felicidad", f"{fmt_num(self.confirmacion_pendiente[6] * c)}", (180, 255, 180)),
             ("salud",     f"{fmt_num(self.confirmacion_pendiente[7] * c)}", (255, 180, 180))
         ]
+
+        if precio_unitario < self.confirmacion_pendiente[1]:
+            txt_desc = self.fuente_p.render(
+                f"Descuento activo: ${fmt_num(self.confirmacion_pendiente[1])} -> ${fmt_num(precio_unitario)}",
+                True,
+                VERDE_BRILLANTE,
+            )
+            self.pantalla.blit(txt_desc, (cuadro.x + 25, cuadro.y + 48))
 
         for i, (icon_key, texto, color) in enumerate(info_recursos):
             y_pos = rect_recursos.y + 15 + (i * 28) # Espaciado aumentado
@@ -1444,8 +1496,42 @@ class Juego:
         self.pantalla.blit(txt_no, (self.btn_guardar_no.centerx - txt_no.get_width()//2, self.btn_guardar_no.centery - txt_no.get_height()//2))
 
     def dibujar_botones_circulares(self):
+        # --- Botón Conquista ---
+        self.btn_combate = pygame.Rect(self.ancho - 550, self.alto - 80, 60, 60)
+        pygame.draw.circle(self.pantalla, (70, 48, 48), self.btn_combate.center, 30)
+        pygame.draw.circle(self.pantalla, (255, 135, 95), self.btn_combate.center, 30, 2)
+        if hasattr(self, 'img_ataque_btn') and self.img_ataque_btn is not None:
+            pos_x = self.btn_combate.centerx - self.img_ataque_btn.get_width() // 2
+            pos_y = self.btn_combate.centery - self.img_ataque_btn.get_height() // 2
+            self.pantalla.blit(self.img_ataque_btn, (pos_x, pos_y))
+        else:
+            txt_hit = self.fuente_g.render("!", True, (255, 220, 200))
+            self.pantalla.blit(txt_hit, (
+                self.btn_combate.centerx - txt_hit.get_width() // 2,
+                self.btn_combate.centery - txt_hit.get_height() // 2 - 2,
+            ))
+        lbl_combate = self.fuente_p.render("Conquista", True, (255, 135, 95))
+        self.pantalla.blit(lbl_combate, (self.btn_combate.centerx - lbl_combate.get_width()//2, self.btn_combate.bottom + 5))
+
+        # --- Botón Intercambio ---
+        self.btn_intercambio = pygame.Rect(self.ancho - 470, self.alto - 80, 60, 60)
+        pygame.draw.circle(self.pantalla, (55, 55, 95), self.btn_intercambio.center, 30)
+        pygame.draw.circle(self.pantalla, (120, 120, 255), self.btn_intercambio.center, 30, 2)
+        if hasattr(self, 'img_intercambio_btn') and self.img_intercambio_btn is not None:
+            pos_x = self.btn_intercambio.centerx - self.img_intercambio_btn.get_width() // 2
+            pos_y = self.btn_intercambio.centery - self.img_intercambio_btn.get_height() // 2
+            self.pantalla.blit(self.img_intercambio_btn, (pos_x, pos_y))
+        else:
+            txt_swap = self.fuente_g.render("<>", True, (210, 210, 255))
+            self.pantalla.blit(txt_swap, (
+                self.btn_intercambio.centerx - txt_swap.get_width() // 2,
+                self.btn_intercambio.centery - txt_swap.get_height() // 2 - 2,
+            ))
+        lbl_int = self.fuente_p.render("Intercambio", True, (120, 120, 255))
+        self.pantalla.blit(lbl_int, (self.btn_intercambio.centerx - lbl_int.get_width()//2, self.btn_intercambio.bottom + 5))
+
         # --- Botón Investigar ---
-        self.btn_investigar = pygame.Rect(ANCHO - 310, ALTO - 80, 60, 60)
+        self.btn_investigar = pygame.Rect(self.ancho - 390, self.alto - 80, 60, 60)
         pygame.draw.circle(self.pantalla, (50, 50, 70), self.btn_investigar.center, 30) 
         pygame.draw.circle(self.pantalla, CIAN, self.btn_investigar.center, 30, 2)
 
@@ -1461,7 +1547,7 @@ class Juego:
         self.pantalla.blit(lbl_inv_lab, (self.btn_investigar.centerx - lbl_inv_lab.get_width()//2, self.btn_investigar.bottom + 5))
 
         # Botón Misiones (ANCHO - 230)
-        self.btn_misiones = pygame.Rect(ANCHO - 230, ALTO - 80, 60, 60)
+        self.btn_misiones = pygame.Rect(self.ancho - 230, self.alto - 80, 60, 60)
         pygame.draw.circle(self.pantalla, (50, 50, 70), self.btn_misiones.center, 30)
         # Comprobar si hay alguna misión reclamable para hacer brillar el botón
         hay_mision_reclamable = any(
@@ -1485,7 +1571,7 @@ class Juego:
         self.pantalla.blit(lbl_mis, (self.btn_misiones.centerx - lbl_mis.get_width()//2, self.btn_misiones.bottom + 5))
 
         # Botón Ajustes (ANCHO - 390)
-        self.btn_ajustes = pygame.Rect(ANCHO - 390, ALTO - 80, 60, 60)
+        self.btn_ajustes = pygame.Rect(self.ancho - 310, self.alto - 80, 60, 60)
         pygame.draw.circle(self.pantalla, (50, 50, 50), self.btn_ajustes.center, 30)
         pygame.draw.circle(self.pantalla, ORO, self.btn_ajustes.center, 30, 2)
         self.pantalla.blit(self.img_ajustes, (self.btn_ajustes.centerx - 17, self.btn_ajustes.centery - 17))
@@ -1493,7 +1579,7 @@ class Juego:
         self.pantalla.blit(lbl_ajustes, (self.btn_ajustes.centerx - lbl_ajustes.get_width()//2, self.btn_ajustes.bottom + 5))
 
         # Botón Inventario (ANCHO - 150)
-        self.btn_inventario = pygame.Rect(ANCHO - 150, ALTO - 80, 60, 60)
+        self.btn_inventario = pygame.Rect(self.ancho - 150, self.alto - 80, 60, 60)
         pygame.draw.circle(self.pantalla, (50, 50, 50), self.btn_inventario.center, 30)
         pygame.draw.circle(self.pantalla, ORO, self.btn_inventario.center, 30, 2)
         self.pantalla.blit(self.img_inventario_btn, (self.btn_inventario.centerx - 17, self.btn_inventario.centery - 17))
@@ -1501,7 +1587,7 @@ class Juego:
         self.pantalla.blit(lbl_inv, (self.btn_inventario.centerx - lbl_inv.get_width()//2, self.btn_inventario.bottom + 5))
 
         # Botón Noticias (ANCHO - 70)
-        self.btn_noticias = pygame.Rect(ANCHO - 70, ALTO - 80, 60, 60)
+        self.btn_noticias = pygame.Rect(self.ancho - 70, self.alto - 80, 60, 60)
         pygame.draw.circle(self.pantalla, (50, 50, 50), self.btn_noticias.center, 30)
         pygame.draw.circle(self.pantalla, ORO, self.btn_noticias.center, 30, 2)
         self.pantalla.blit(self.img_noticias_btn, (self.btn_noticias.centerx - 17, self.btn_noticias.centery - 17))
@@ -1619,7 +1705,7 @@ class Juego:
                 ("Construir",               "1 edificio"),
                 ("Hacer 1 intercambio",     ""),
                 ("10.000 de",               "un recurso"),
-                ("1 investigaci\u00f3n",    "completada"),
+                ("1 Avance",                "investigado"),
                 ("Felicidad \u2265 90%",    ""),
                 ("Salud \u2265 95%",        ""),
                 ("\u2265 200 habitantes",   ""),
@@ -1634,43 +1720,43 @@ class Juego:
                 ("10 edificios",            "construidos"),
                 ("\u2265 400 hab.",          ""),
                 ("20.000 de",               "cada recurso"),
-                ("Investigaci\u00f3n",       "nivel 3"),
+                ("1 Avance",                "a nivel 3"),
                 ("Edif. nivel 3",           "cualquier tipo"),
             ]
         elif self.logica.capitulo_actual == 3:
             textos_misiones = [
                 ("Felic \u2265 95%",        "y Salud \u2265 95%"),
                 ("30.000 de",               "cada recurso"),
-                ("Edif. nivel 4",           "cualquier tipo"),
+                ("Edif. nivel 5",           "cualquier tipo"),
                 ("\u2265 500 hab.",          ""),
                 ("20 edificios",            "construidos"),
                 ("\u2265 600 hab.",          ""),
                 ("50.000 de",               "cada recurso"),
-                ("Todas inv.",              "nivel 3"),
-                ("Investigaci\u00f3n",        "nivel 4"),
+                ("Todos Avances",           "a nivel 3"),
+                ("1 Avance",                "a nivel 5"),
             ]
         elif self.logica.capitulo_actual == 4:
             textos_misiones = [
                 ("Felic \u2265 97%",        "y Salud \u2265 97%"),
                 ("70.000 de",               "cada recurso"),
-                ("1 de cada edif.",         "nivel 4"),
+                ("1 de cada edif.",         "nivel 5"),
                 ("\u2265 700 hab.",          ""),
                 ("25 edificios",            "construidos"),
                 ("\u2265 900 hab.",          ""),
                 ("120.000 de",              "cada recurso"),
-                ("Todas inv.",              "nivel 4"),
+                ("Todos Avances",           "a nivel 5"),
                 ("Nivel tec. 4",            "alcanzado"),
             ]
         else:  # capítulo 5
             textos_misiones = [
                 ("Felic \u2265 99%",        "y Salud \u2265 99%"),
                 ("150.000 de",              "cada recurso"),
-                ("\u2265 3 edif.",           "nivel 4"),
+                ("Edif. nivel 6",           "cualquier tipo"),
                 ("\u2265 1.000 hab.",        ""),
                 ("35 edificios",            "construidos"),
                 ("\u2265 1.200 hab.",        ""),
                 ("250.000 de",              "cada recurso"),
-                ("Todas inv.",              "nivel 4"),
+                ("Todos Avances",           "a nivel 6"),
                 ("\u2265 5.000.000$",        ""),
             ]
 
@@ -2142,6 +2228,8 @@ class Juego:
         pygame.draw.rect(self.pantalla, DORADO, rect_pop, 3, border_radius=15)
         
         # Obtener datos de la investigación seleccionada desde logica_ciudad
+        if self.investigacion_seleccionada is None:
+            return
         datos = self.logica.datos_investigacion.get(self.investigacion_seleccionada)
         if not datos:
             return
@@ -2155,17 +2243,18 @@ class Juego:
         pygame.draw.line(self.pantalla, GRIS_BORDE, (rect_pop.x + 30, rect_pop.y + 65), (rect_pop.right - 30, rect_pop.y + 65), 1)
 
         # 4. Información Detallada
+        fuente_info = pygame.font.SysFont("Arial", 20)
         # --- COSTE ---
-        txt_coste = self.fuente_p.render(f"• Coste: ${datos['coste_dinero']}", True, (200, 200, 200))
+        txt_coste = fuente_info.render(f"Coste: ${datos['coste_dinero']:,}", True, (200, 200, 200))
         self.pantalla.blit(txt_coste, (rect_pop.x + 40, rect_pop.y + 85))
         
         # --- REQUISITOS ---
-        txt_req = self.fuente_p.render(f"• Requisitos: {datos['pob_req']} Habitantes", True, (200, 200, 200))
+        txt_req = fuente_info.render(f"Requisitos: {datos['pob_req']} Habitantes", True, (200, 200, 200))
         self.pantalla.blit(txt_req, (rect_pop.x + 40, rect_pop.y + 115))
         
         # --- DESBLOQUEOS (Desde datos de logica) ---
         edificios_str = ", ".join(datos.get("edificios_desbloquea", []))
-        txt_des = self.fuente_p.render(f"• Desbloqueos: {edificios_str}", True, (0, 255, 255))
+        txt_des = fuente_info.render(f"Desbloqueos: {edificios_str}", True, (0, 255, 255))
         self.pantalla.blit(txt_des, (rect_pop.x + 40, rect_pop.y + 145))
 
         # 5. BOTONES (Con borde dorado)
@@ -2181,8 +2270,8 @@ class Juego:
         pygame.draw.rect(self.pantalla, DORADO, self.btn_inv_no, 2, border_radius=8)
         
         # Textos de los botones
-        txt_si = self.fuente_p.render("CONFIRMAR", True, (255, 255, 255))
-        txt_no = self.fuente_p.render("CANCELAR", True, (255, 255, 255))
+        txt_si = fuente_info.render("CONFIRMAR", True, (255, 255, 255))
+        txt_no = fuente_info.render("CANCELAR", True, (255, 255, 255))
         
         self.pantalla.blit(txt_si, (self.btn_inv_si.centerx - txt_si.get_width()//2, self.btn_inv_si.centery - txt_si.get_height()//2))
         self.pantalla.blit(txt_no, (self.btn_inv_no.centerx - txt_no.get_width()//2, self.btn_inv_no.centery - txt_no.get_height()//2))
@@ -2210,15 +2299,25 @@ class Juego:
                             if capitulo_partida != capitulo_actual:
                                 continue
 
-                            poblacion_partida = len(partida.get("poblacion", []))
+                            stats_pob = partida.get("poblacion_stats", {})
+                            if isinstance(stats_pob, dict):
+                                poblacion_partida = int(stats_pob.get("poblacion_total", 0))
+                                felicidad_media = float(stats_pob.get("promedios", {}).get("felicidad_media", 0))
+                                salud_media = float(stats_pob.get("promedios", {}).get("salud_media", 0))
+                            else:
+                                poblacion_lista = partida.get("poblacion", [])
+                                poblacion_partida = len(poblacion_lista)
+                                felicidad_media = sum(p.get("felicidad", 0) for p in poblacion_lista) // max(poblacion_partida, 1)
+                                salud_media = sum(p.get("salud", 0) for p in poblacion_lista) // max(poblacion_partida, 1)
+
                             recursos = partida.get("recursos", {})
                             partidas_ranking.append({
                                 "usuario": nombre_usuario,
                                 "dinero": partida.get("dinero", 0),
                                 "ano": ano_partida,
                                 "poblacion": poblacion_partida,
-                                "felicidad": sum(p.get("felicidad", 0) for p in partida.get("poblacion", [])) // max(poblacion_partida, 1),
-                                "salud": sum(p.get("salud", 0) for p in partida.get("poblacion", [])) // max(poblacion_partida, 1),
+                                "felicidad": felicidad_media,
+                                "salud": salud_media,
                                 "recursos": f"C:{recursos.get('comida', 0)} A:{recursos.get('agua', 0)} E:{recursos.get('electricidad', 0)}",
                                 "nivel_tecnologico": partida.get("nivel_tecnologico", 1),
                                 "capitulo": capitulo_partida,
@@ -2364,6 +2463,10 @@ class Juego:
 
             # Habilitar click de cierre manual: se gestiona en el bucle de eventos
 
+    def obtener_tiempo_objetivo_investigacion(self):
+        reduccion = max(0.0, min(0.8, getattr(self.logica, "reduccion_tiempo_investigacion", 0.0)))
+        return max(90, int(300 * (1.0 - reduccion)))
+
     def finalizar_investigacion(self):
         idtec = self.investigando_id
         
@@ -2376,6 +2479,13 @@ class Juego:
         if exito:
             # ✅ MARCAR COMO COMPLETADA TAMBIÉN AQUÍ
             self.investigaciones_completadas.add(idtec)
+
+            # Mini-popup con stats obtenidos al terminar la investigación
+            self.popup_inv_completada_data = {
+                "titulo": self.logica.ultimo_titulo_investigacion or idtec,
+                "lineas": list(self.logica.ultimo_resumen_investigacion or []),
+            }
+            self.popup_inv_completada_frames = 240
             
             # ✅ LA NOTICIA YA SE CREA EN LOGICA_CIUDAD
         else:
@@ -2384,6 +2494,42 @@ class Juego:
         # ✅ RESET
         self.investigando_id = None
         self.tiempo_investigacion = 0
+
+    def dibujar_popup_resumen_investigacion(self):
+        if not self.popup_inv_completada_data:
+            return
+
+        if self.popup_inv_completada_frames <= 0:
+            self.popup_inv_completada_data = None
+            return
+
+        panel_w = 500
+        lineas = self.popup_inv_completada_data.get("lineas", [])
+        panel_h = 120 + (len(lineas) * 24)
+        x = self.ancho - panel_w - 25
+        y = 95
+        panel = pygame.Rect(x, y, panel_w, panel_h)
+
+        fondo = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        fondo.fill((8, 12, 24, 230))
+        self.pantalla.blit(fondo, (x, y))
+        pygame.draw.rect(self.pantalla, (255, 215, 0), panel, 2, border_radius=12)
+
+        titulo = self.popup_inv_completada_data.get("titulo", "Investigación")
+        txt_t = self.fuente_m.render(f"Investigación completada: {titulo}", True, (255, 230, 140))
+        self.pantalla.blit(txt_t, (x + 16, y + 14))
+
+        y_linea = y + 52
+        if not lineas:
+            txt = self.fuente_p.render("Sin bonificaciones numéricas", True, (190, 190, 200))
+            self.pantalla.blit(txt, (x + 16, y_linea))
+        else:
+            for linea in lineas:
+                txt = self.fuente_p.render(f"+ {linea}", True, (220, 220, 235))
+                self.pantalla.blit(txt, (x + 16, y_linea))
+                y_linea += 24
+
+        self.popup_inv_completada_frames -= 1
 
     def dibujar_menu_investigacion(self):
         # 1. Fondo oscuro
@@ -2437,7 +2583,7 @@ class Juego:
                     inv_datos = datos
                     break
             
-            if inv_id:
+            if inv_id and inv_datos is not None:
                 # Hay investigación disponible para este tipo
                 nivel_inv = inv_datos.get("nivel", 2)
                 nombre_display = f"{nombre_base} NVL {nivel_inv}"
@@ -2499,7 +2645,8 @@ class Juego:
                 self.pantalla.blit(txt_status, (rect_nodo.centerx - txt_status.get_width()//2, rect_nodo.y + 30))
                 
                 # Dibujar barra
-                progreso = self.tiempo_investigacion / 300 # 300 es el tiempo total
+                tiempo_total = self.obtener_tiempo_objetivo_investigacion()
+                progreso = min(1.0, self.tiempo_investigacion / tiempo_total)
                 ancho_barra = rect_nodo.width - 40
                 pygame.draw.rect(self.pantalla, (50, 50, 50), (rect_nodo.x + 20, rect_nodo.y + 65, ancho_barra, 12), border_radius=5)
                 pygame.draw.rect(self.pantalla, (0, 255, 0), (rect_nodo.x + 20, rect_nodo.y + 65, ancho_barra * progreso, 12), border_radius=5)
@@ -2527,7 +2674,7 @@ class Juego:
             
         coste = datos["coste_dinero"]
         pob_req = datos["pob_req"]
-        pob_actual = len(self.logica.poblacion)
+        pob_actual = self.logica.get_poblacion_total()
 
         # 1. Comprobar Dinero y Poblacion
         if self.logica.dinero >= coste and pob_actual >= pob_req:
@@ -2557,57 +2704,41 @@ class Juego:
     def generar_evento_aleatorio(self):
         # Filtramos eventos que el jugador pueda cumplir (por población, dinero, etc.)
         # Corrección rápida:
-        posibles = [e for e in self.pool_eventos if len(self.poblacion) >= e.get("requisito_poblacion", 0)]
+        posibles = [e for e in self.logica.eventos_posibles if self.logica.get_poblacion_total() >= e.get("requisito_poblacion", 0)]
         
         if posibles:
-            self.evento_actual = random.choice(posibles)
-            self.interfaz.mostrar_popup_evento = True # Esto avisa a la clase principal
+            self.logica.evento_actual = random.choice(posibles)
+            self.logica.mostrar_popup_evento = True
 
     def aplicar_efectos_evento(self, efectos):
-        # 'efectos' es el diccionario (ej: {"dinero_extra": 0.30, "felicidad": 15})
-        for recurso, valor in efectos.items():
-            
-            # 1. DINERO (Si es porcentaje, calculamos sobre el total actual)
-            if recurso == "dinero_extra":
-                ganancia = int(self.logica.dinero * valor)
-                self.logica.dinero += ganancia
-                self.logica.noticias.append({"txt": f"Ganancia extra: +${ganancia}", "tipo": "BUENO"})
-            
-            # 2. COMIDA (Acceso directo a tu diccionario de recursos o variable)
-            elif recurso == "comida":
-                self.logica.recursos["comida"] += valor
-                
-            # 3. FELICIDAD (Como es individual, hay que sumársela a cada habitante)
-            elif recurso == "felicidad":
-                for hab in self.logica.poblacion:
-                    hab.felicidad = max(0, min(100, hab.felicidad + valor))
-                    
-            # 4. HABITANTES / POBLACION
-            elif recurso in ("habitantes", "poblacion_extra"):
-                # valor puede ser porcentaje (negativo/positivo) o número entero
-                if abs(valor) < 1:
-                    cambio = int(len(self.logica.poblacion) * valor)
-                else:
-                    cambio = int(valor)
-
-                if cambio > 0:
-                    nuevos = min(cambio, max(0, self.logica.capacidad_max_poblacion - len(self.logica.poblacion)))
-                    for _ in range(nuevos):
-                        self.logica.agregar_ciudadano()
-                    self.logica.noticias.append({"txt": f"Inmigración de evento: +{nuevos}", "tipo": "AVISO"})
-
-                elif cambio < 0:
-                    muertos = min(abs(cambio), len(self.logica.poblacion))
-                    for _ in range(muertos):
-                        self.logica.poblacion.pop()
-                    self.logica.noticias.append({"txt": f"Crisis: -{muertos} habitantes", "tipo": "CRITICO"})
-
-        # IMPORTANTE: Al terminar, cerramos el popup
-        self.mostrar_popup_evento = False
-        self.evento_actual = None
+        self.logica.aplicar_efectos_evento(efectos, 0)
 
     async def ejecutar(self):
         while self.corriendo:
+
+            # ================================================================
+            # ESTADO: CONQUISTA / COMBATE
+            # ================================================================
+            if self.estado_actual == 'COMBATE':
+                if self.ciudad_surface:
+                    self.pantalla.blit(self.ciudad_surface, (0, 0))
+                else:
+                    self.pantalla.fill(NEGRO)
+                if self.escena_combate:
+                    self.escena_combate.dibujar(self.pantalla)
+                for ev in pygame.event.get():
+                    if ev.type == pygame.QUIT:
+                        self.logica.guardar_partida()
+                        self.corriendo = False
+                    if self.escena_combate:
+                        res = self.escena_combate.manejar_eventos(ev)
+                        if res == 'CIUDAD':
+                            self.estado_actual = 'CIUDAD'
+                            self.escena_combate = EscenaCombate(self.logica)
+                pygame.display.flip()
+                self.reloj.tick(FPS)
+                await asyncio.sleep(0)
+                continue
 
             # ================================================================
             # ESTADO: LABORATORIO DE INVESTIGACION
@@ -2626,6 +2757,39 @@ class Juego:
                     resultado = self.menu_inv.manejar_eventos(ev)
                     if resultado == 'CIUDAD':
                         self.estado_actual = 'CIUDAD'
+                    elif isinstance(resultado, tuple) and resultado[0] == 'ARBOL':
+                        # Abrir árbol tecnológico de la categoría clickada
+                        cat = resultado[1]
+                        self.escena_arbol = EscenaArbol(cat, self.gestor_arbol, self.logica)
+                        self.estado_actual = 'ARBOL'
+                pygame.display.flip()
+                self.reloj.tick(FPS)
+                await asyncio.sleep(0)
+                continue
+
+            # ================================================================
+            # ESTADO: ÁRBOL TECNOLÓGICO
+            # ================================================================
+            if self.estado_actual == 'ARBOL':
+                if self.ciudad_surface:
+                    self.pantalla.blit(self.ciudad_surface, (0, 0))
+                else:
+                    self.pantalla.fill(NEGRO)
+                if self.escena_arbol:
+                    self.escena_arbol.dibujar(self.pantalla)
+                for ev in pygame.event.get():
+                    if ev.type == pygame.QUIT:
+                        # Sincronizar niveles antes de salir
+                        self.logica.niveles_arbol = self.gestor_arbol.to_dict()
+                        self.logica.guardar_partida()
+                        self.corriendo = False
+                    if self.escena_arbol:
+                        res = self.escena_arbol.manejar_eventos(ev)
+                        if res == 'INVESTIGACION':
+                            # Guardar niveles del gestor en logica (para persistencia)
+                            self.logica.niveles_arbol = self.gestor_arbol.to_dict()
+                            self.estado_actual = 'INVESTIGACION'
+                            self.escena_arbol = None
                 pygame.display.flip()
                 self.reloj.tick(FPS)
                 await asyncio.sleep(0)
@@ -2648,13 +2812,13 @@ class Juego:
             
             if hasattr(self, 'investigando_id') and self.investigando_id is not None:
                 self.tiempo_investigacion += 1
-                
-                # Si llega al tiempo (300 frames = 5 seg aprox a 60 FPS)
-                if self.tiempo_investigacion >= 300:
+
+                # Si llega al tiempo objetivo, completar investigación
+                if self.tiempo_investigacion >= self.obtener_tiempo_objetivo_investigacion():
                     self.finalizar_investigacion()
 
             # 🔥 VERIFICAR SI SE QUEDÓ SIN HABITANTES
-            if len(self.logica.poblacion) == 0 and not self.sin_habitantes_mostrado:
+            if self.logica.get_poblacion_total() == 0 and not self.sin_habitantes_mostrado:
                 self.dialogo_sin_habitantes = True
                 self.sin_habitantes_mostrado = True
             
@@ -2668,14 +2832,15 @@ class Juego:
                 nombre_partida = self.partida_actual.get("nombre", f"Año 0") if isinstance(self.partida_actual, dict) else f"Año 0"
                 self.logica = LogicaCiudad(self, nombre_partida)
                 self.logica.cargar_partida(self.partida_actual)
+                # Sincronizar gestor de árbol tecnológico
+                self.gestor_arbol.from_dict(self.logica.niveles_arbol)
+                self.gestor_arbol.recalcular_efectos(self.logica)
+                self.escena_combate = EscenaCombate(self.logica)
                 # Reset de variables
                 self.sin_habitantes_mostrado = False
                 self.volver_al_menu = False
                 self.dialogo_sin_habitantes = False
-                self.edificios_construidos = {ed[0]: 0 for ed in EDIFICACIONES}
-                for edificio in self.logica.edificios:
-                    if edificio.nombre in self.edificios_construidos:
-                        self.edificios_construidos[edificio.nombre] += 1
+                self.reconstruir_contador_edificios()
                 continue
             
             # --- CAPA 1: MAPA Y EDIFICIOS (Fondo) ---
@@ -2736,6 +2901,9 @@ class Juego:
 
             if self.popup_recompensa_cofre:
                 self.dibujar_popup_cofre_recompensa()
+
+            if self.popup_inv_completada_data:
+                self.dibujar_popup_resumen_investigacion()
 
             if self.dialogo_dinero_insuficiente:
                 self.dibujar_dialogo_dinero_insuficiente()
@@ -3079,14 +3247,15 @@ class Juego:
                                     elif resultado != "nueva":
                                         # Cargar la partida seleccionada
                                         self.partida_actual = resultado
-                                        self.logica = LogicaCiudad(self, self.partida_actual.get("nombre", "Nueva Partida"))
+                                        nombre_p = self.partida_actual.get("nombre", "Nueva Partida") if isinstance(self.partida_actual, dict) else "Nueva Partida"
+                                        self.logica = LogicaCiudad(self, nombre_p)
                                         self.logica.cargar_partida(self.partida_actual)
+                                        self.gestor_arbol.from_dict(self.logica.niveles_arbol)
+                                        self.gestor_arbol.recalcular_efectos(self.logica)
+                                        self.escena_combate = EscenaCombate(self.logica)
 
                                         
-                                        # Sincronizar edificios
-                                        for edificio in self.logica.edificios:
-                                            if edificio.nombre in self.edificios_construidos:
-                                                self.edificios_construidos[edificio.nombre] += 1
+                                        self.reconstruir_contador_edificios()
                                         
                                         self.menu_ajustes_abierto = False
                                         self.reproducir_sonido("cerrar")
@@ -3129,11 +3298,10 @@ class Juego:
                     if self.mostrando_confirmacion_reiniciar:
                         if self.btn_confirmar_reiniciar.collidepoint(pos):
                             self.logica.reiniciar_capitulo()
+                            self.gestor_arbol.from_dict(self.logica.niveles_arbol)
+                            self.gestor_arbol.recalcular_efectos(self.logica)
                             # Resincronizar inventario de edificios con el estado reiniciado
-                            self.edificios_construidos = {ed[0]: 0 for ed in EDIFICACIONES}
-                            for edificio in self.logica.edificios:
-                                if edificio.nombre in self.edificios_construidos:
-                                    self.edificios_construidos[edificio.nombre] += 1
+                            self.reconstruir_contador_edificios()
                             # Resincronizar investigaciones
                             self.investigaciones_completadas = set(self.logica.investigaciones_completadas)
                             self.mostrando_confirmacion_reiniciar = False
@@ -3147,10 +3315,9 @@ class Juego:
                     if self.mostrando_popup_bloqueo_capitulo:
                         if hasattr(self, 'btn_reiniciar_bloqueo') and self.btn_reiniciar_bloqueo.collidepoint(pos):
                             self.logica.reiniciar_capitulo()
-                            self.edificios_construidos = {ed[0]: 0 for ed in EDIFICACIONES}
-                            for edificio in self.logica.edificios:
-                                if edificio.nombre in self.edificios_construidos:
-                                    self.edificios_construidos[edificio.nombre] += 1
+                            self.gestor_arbol.from_dict(self.logica.niveles_arbol)
+                            self.gestor_arbol.recalcular_efectos(self.logica)
+                            self.reconstruir_contador_edificios()
                             self.investigaciones_completadas = set(self.logica.investigaciones_completadas)
                             self.mostrando_popup_bloqueo_capitulo = False
                             self.reproducir_sonido("cerrar")
@@ -3171,9 +3338,9 @@ class Juego:
                                 if btn_r.collidepoint(pos):
                                     self.logica.recursos[clave_rec] = min(
                                         self.logica.recursos[clave_rec] + cantidad_rec,
-                                        {"comida": self.logica.max_comida,
-                                         "agua": self.logica.max_agua,
-                                         "electricidad": self.logica.max_energia}.get(clave_rec, cantidad_rec)
+                                        {"comida": self.logica.max_comida or cantidad_rec,
+                                         "agua": self.logica.max_agua or cantidad_rec,
+                                         "electricidad": self.logica.max_energia or cantidad_rec}.get(clave_rec, cantidad_rec)
                                     )
                                     self.mostrando_selector_recurso_cofre = False
                                     self.popup_recompensa_cofre = None
@@ -3276,6 +3443,17 @@ class Juego:
 
                     elif self.btn_tienda.collidepoint(pos):
                         self.menu_compra_abierto = not self.menu_compra_abierto
+                        self.mostrando_investigacion = False
+                        self.mostrando_inventario = False
+                        self.menu_intercambio_abierto = False
+                        self.noticias_abiertas = False
+                        self.mostrando_misiones = False
+
+                    elif hasattr(self, 'btn_combate') and self.btn_combate.collidepoint(pos):
+                        self.ciudad_surface = self.pantalla.copy()
+                        self.escena_combate = EscenaCombate(self.logica)
+                        self.estado_actual = 'COMBATE'
+                        self.menu_compra_abierto = False
                         self.mostrando_investigacion = False
                         self.mostrando_inventario = False
                         self.menu_intercambio_abierto = False

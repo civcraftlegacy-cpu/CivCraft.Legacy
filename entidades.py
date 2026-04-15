@@ -56,6 +56,7 @@ class Ciudadano:
 class Edificio:
     def __init__(self, tipo_data, pos_x, pos_y):
         self.id_edificio = str(uuid.uuid4())  # NUEVO: ID único para cada edificio
+        self.es_inicial_gratis = bool(tipo_data.get('es_inicial_gratis', False))
         self.nombre = tipo_data['nombre']
         self.costo = tipo_data['costo']
         self.mantenimiento = tipo_data['mantenimiento']
@@ -65,12 +66,15 @@ class Edificio:
         self.produccion_dinero = tipo_data['dinero']
         self.capacidad_max = tipo_data['capacidad']
         
-        # NUEVO FASE 4: Capacidad específica para vivienda
-        self.capacidad_max_vivienda = 0
-        if self.nombre == "Casa":
-            self.capacidad_max_vivienda = 5
-        elif self.nombre == "Bloque Pisos":
-            self.capacidad_max_vivienda = 20
+        # Capacidad residencial por tipo de edificio
+        capacidades_residenciales = {
+            "Casa": 5,
+            "Bloque Pisos": 20,
+            "Rascacielos": 100,
+            "Megaplex Urbano": 250,
+            "Torre Inteligente": 1000,
+        }
+        self.capacidad_max_vivienda = capacidades_residenciales.get(self.nombre, 0)
         
         self.salud_impacto = tipo_data['salud']
         self.felic_impacto = tipo_data['felic']

@@ -69,7 +69,23 @@ EDIFICACIONES = [
     ["Megaplex Urbano", 220000, 3000, -300, -800, -600, 8, 3],
     ["Biofábrica", 300000, 7000, 12000, -2000, -3000, -2, -2],
     ["Planta de Ósmosis", 360000, 8000, 0, 15000, -2500, 4, 8],
-    ["Reactor de Fusión", 600000, 15000, 0, -1000, 25000, -8, -8]
+    ["Reactor de Fusión", 600000, 15000, 0, -1000, 25000, -8, -8],
+
+    # --- NIVEL 5 (Requiere AVANCES nivel 6 — Metrópolis) ---
+    # --- NIVEL 5 (Requiere AVANCES nivel 5) ---
+    ["Megagranja Vertical", 800000, 20000, 30000, -5000, -8000, -3, -3],
+    ["Torre Inteligente", 600000, 12000, -600, -2000, -1500, 15, 5],
+    ["Red de Antimateria", 1200000, 30000, 0, -3000, 60000, -12, -12],
+    ["Precipitador Atmosférico", 900000, 22000, 0, 40000, -5000, 5, 10],
+
+    # --- INTERMEDIOS (desbloqueados en AVANCES nivel 2) ---
+    ["Parque Eólico", 250000, 4500, 0, -50, 5000, 2, 2],
+    ["Planta Desalinizadora", 180000, 3500, 0, 3500, -200, 2, 3],
+
+    # --- EDIFICIOS ESPECIALES / RESERVA ---
+    ["Laboratorio Modular", 90000, 1200, -20, -120, -180, 2, 4],
+    ["Centro de Innovación", 180000, 2600, -40, -240, -420, 4, 6],
+    ["Campus Tecnológico", 340000, 4800, -80, -480, -900, 8, 9],
 ]
 
 
@@ -98,7 +114,9 @@ DANO_SIN_TECHO_FELIC = 3
 NIVELES_CIUDAD = [
     {"pob_min": 0, "rango": "Aldea"},
     {"pob_min": 50, "rango": "Pueblo"},
-    {"pob_min": 200, "rango": "Ciudad"}
+    {"pob_min": 200, "rango": "Ciudad"},
+    {"pob_min": 1000, "rango": "Metrópolis"},
+    {"pob_min": 5000, "rango": "Megalópolis"},
 ]
 
 # ✓ ARREGLO 3: Función para ordenar edificios por tipo de recurso
@@ -117,32 +135,44 @@ def obtener_edificios_ordenados_por_tipo():
         "Bloque Pisos": ("residencial", 1),
         "Rascacielos": ("residencial", 2),
         "Megaplex Urbano": ("residencial", 3),
+        "Torre Inteligente": ("residencial", 4),
+
+        # Investigación
+        "Laboratorio Modular": ("investigacion", 0),
+        "Centro de Innovación": ("investigacion", 1),
+        "Campus Tecnológico": ("investigacion", 2),
         
         # Comida
         "Granja": ("comida", 0),
         "Granja Ind.": ("comida", 1),
         "Sintetizador Comida": ("comida", 2),
         "Biofábrica": ("comida", 3),
-        "Almacen de Comida": ("comida", 4),
-        "Silo Gigante": ("comida", 4),
+        "Megagranja Vertical": ("comida", 5),
+        "Almacen de Comida": ("comida", 6),
+        "Silo Gigante": ("comida", 2),
         
         # Agua
         "Planta Agua": ("agua", 0),
         "Depuradora": ("agua", 1),
-        "Extractor Atmosférico": ("agua", 2),
-        "Planta de Ósmosis": ("agua", 3),
-        "Almacen de Agua": ("agua", 4),
+        "Planta Desalinizadora": ("agua", 2),
+        "Extractor Atmosférico": ("agua", 3),
+        "Planta de Ósmosis": ("agua", 4),
+        "Precipitador Atmosférico": ("agua", 5),
+        "Almacen de Agua": ("agua", 6),
+        "Almacen de Agua": ("agua", 6),
         
         # Energía
         "Central Elec.": ("energia", 0),
         "Central Térmica": ("energia", 1),
-        "Central Nuclear": ("energia", 2),
-        "Reactor de Fusión": ("energia", 3),
-        "Almacen de Energia": ("energia", 4),
+        "Parque Eólico": ("energia", 2),
+        "Central Nuclear": ("energia", 3),
+        "Reactor de Fusión": ("energia", 4),
+        "Red de Antimateria": ("energia", 5),
+        "Almacen de Energia": ("energia", 6),
     }
     
     # Orden de tipos
-    orden_tipos = ["residencial", "comida", "agua", "energia"]
+    orden_tipos = ["residencial", "investigacion", "comida", "agua", "energia"]
     
     # Agrupar edificios por tipo
     edificios_grupados = {tipo: [] for tipo in orden_tipos}
@@ -170,27 +200,38 @@ def obtener_tipo_edificio(nombre_edificio):
         "Bloque Pisos": "residencial",
         "Rascacielos": "residencial",
         "Megaplex Urbano": "residencial",
+        "Torre Inteligente": "residencial",
+
+        # Investigación
+        "Laboratorio Modular": "investigacion",
+        "Centro de Innovación": "investigacion",
+        "Campus Tecnológico": "investigacion",
         
         # Comida
         "Granja": "comida",
         "Granja Ind.": "comida",
         "Sintetizador Comida": "comida",
         "Biofábrica": "comida",
+        "Megagranja Vertical": "comida",
         "Almacen de Comida": "comida",
         "Silo Gigante": "comida",
         
         # Agua
         "Planta Agua": "agua",
         "Depuradora": "agua",
+        "Planta Desalinizadora": "agua",
         "Extractor Atmosférico": "agua",
         "Planta de Ósmosis": "agua",
+        "Precipitador Atmosférico": "agua",
         "Almacen de Agua": "agua",
         
         # Energía
         "Central Elec.": "energia",
         "Central Térmica": "energia",
+        "Parque Eólico": "energia",
         "Central Nuclear": "energia",
         "Reactor de Fusión": "energia",
+        "Red de Antimateria": "energia",
         "Almacen de Energia": "energia",
     }
     return tipos_clasificacion.get(nombre_edificio, None)
